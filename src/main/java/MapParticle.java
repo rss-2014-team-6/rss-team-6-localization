@@ -1,0 +1,101 @@
+package Localization;
+
+import java.awt.geom.Point2D.Double;
+import java.util.Random;
+import java.lang.Math;
+import org.apache.commons.math3.distribution.NormalDistribution; // will we have access to this?
+
+/*
+ * @author - bhomberg
+ */
+
+public class MapParticle {
+
+    // TODO: bumpSensorUpdate
+    
+    // we store weights as the negative log in order to get extra precision for low weight particles
+    private double weight;
+    private PolygonMap map;
+    private double x;
+    private double y;
+    private double theta; // theta ranges 0 to 2pi
+    private Random rand;
+
+    // variance values -- should determine from experimentation
+    // numbers are pulled out of a hat for now
+    private final double SONAR_VARIANCE = .05;
+    private final double FIDUCIAL_VARIANCE = .2;
+    private final double X_VARIANCE = .1;
+    private final double Y_VARIANCE = .1;
+    private final double THETA_VARIANCE = .3;
+
+    // constructor
+    // takes in starting map file and total number of particles
+    public MapParticle(String startMapFile, int numParticles) {
+	this.map = new PolygonMap(startMap);
+	this.rand = new Random();
+	this.x = rand.nextDouble() * map.width;
+	this.y = rand.nextDouble() * map.height;
+	this.theta = rand.nextDouble() * Math.PI * 2;
+	// all particles start off with the same weight
+	this.weight = -1 * Math.log( 1.0 / numParticles);
+    }
+
+    // performs a sensor update for this particle for bump sensors
+    // bumpLoc is offset from local coordinates of robot
+    // returns nothing, but particle weight changes
+    public void bumpSensorUpdate(Point2D bumpLoc){
+    }
+
+    // performs a sensor update for this particle for sonars
+    // sonarMeasurements are ranges
+    // returns nothing, but particle weight changes
+    // eventually, here we'll think about adding new obstacles
+    public void sonarSensorUpdate(double[] sonarMeasurements){
+	double[] predicted = map.predictSonars(x, y, theta);
+	double logprob = 0;
+	for(int i=0; i<predicted.length; i++){
+	    logprob += likelihood(sonarMeasurements[i], predicted[i], SONAR_VARIANCE);
+	}
+	weight = weight + logprob;
+    }
+
+    // performs a motion update for this particle
+    // takes in delta values from odometry message
+    // returns nothing, but particle position changes
+    public void motionUpdate(double deltaX, double deltaY, double deltaTheta, double deltaTime){
+	x += sample(deltaX, X_VARIANCE);
+	y += sample(deltaY, Y_VARIANCE);
+	theta += sample(deltaTheta, THETA_VARIANCE);
+    }
+
+    // returns the weight
+    public double getWeight(){
+	return weight;
+    }
+
+    // set the weight -- used for normalization
+    public double setWeight(double w){
+	weight = w;
+    }
+
+    // performs a Gaussian sample
+    // takes in a mean value and a variance
+    // returns a random sample
+    private double sample(double mean, double variance){
+	return mean + Math.sqrt(variance) * rand.nextGaussian(); // stdv is sqrt of var
+    }
+
+    // finds the likelihood of a Gaussian sample
+    // takes in value, mean, variance
+    // returns a negative log probability
+    private double likelihood(double value, double mean, double variance){
+	// if this is too slow or something we can switch to having a standard normal distribution and
+	// making the necessary compensations
+	NormalDistribution normal = new NormalDistribution(mean, Math.sqrt(variance)); // stdv is sqrt of var
+	if(value >  mean)
+	    value = mean - (value - mean); // move value to equally far away but smaller than mean
+	double p = normal.cumulativeProbability(value);
+	return -1 * Math.log(p);
+    }
+}
