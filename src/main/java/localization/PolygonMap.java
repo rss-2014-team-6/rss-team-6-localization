@@ -1,7 +1,9 @@
-package Localization;
+package localization;
 
-import java.awt.geom.Point2D.Double;
+//import java.awt.geom.Point2D.Double;
+import java.lang.Double;
 import java.lang.Math;
+import java.awt.Color;
 
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -106,7 +108,9 @@ public class PolygonMap{
     // takes in the robot position
     // returns an array of sonar values
     public double[] predictSonars(double x, double y, double theta){
+	double[] rtrn = new double[4];
 
+	return rtrn;
 	// TODO: fill in predictSonars
     }
 
@@ -290,7 +294,8 @@ public class PolygonMap{
 		PolygonObstacle poly = parseObs(br, "obstacle " + obstacleNumber,
 						lineNumber++);
 		if (poly != null) {
-		    poly.color = SonarGUI.makeRandomColor();
+		    //poly.color = SonarGUI.makeRandomColor();
+		    poly.color = Color.RED;
 		    obstacles.add(poly);
 		}
 		else

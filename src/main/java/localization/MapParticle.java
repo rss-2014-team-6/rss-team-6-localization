@@ -1,6 +1,8 @@
-package Localization;
+package localization;
 
-import java.awt.geom.Point2D.Double;
+import java.awt.geom.Point2D;
+import java.io.IOException;
+import java.text.ParseException;
 import java.util.Random;
 import java.lang.Math;
 import org.apache.commons.math3.distribution.NormalDistribution; // will we have access to this?
@@ -11,7 +13,7 @@ import org.apache.commons.math3.distribution.NormalDistribution; // will we have
 
 public class MapParticle {
 
-    // TODO: bumpSensorUpdate
+    // TODO: bumpSensorUpdate, fiducialSensorUpdate
     
     // we store weights as the negative log in order to get extra precision for low weight particles
     private double weight;
@@ -32,10 +34,16 @@ public class MapParticle {
     // constructor
     // takes in starting map file and total number of particles
     public MapParticle(String startMapFile, int numParticles) {
-	this.map = new PolygonMap(startMap);
+	try{
+	    this.map = new PolygonMap(startMapFile);
+	} catch (IOException e){
+	    System.out.println("Error reading in map file!!");
+	} catch (ParseException p) {
+	    System.out.println("Error reading in map file!");
+	}
 	this.rand = new Random();
-	this.x = rand.nextDouble() * map.width;
-	this.y = rand.nextDouble() * map.height;
+	this.x = rand.nextDouble() * map.worldRect.getWidth();
+	this.y = rand.nextDouble() * map.worldRect.getHeight();
 	this.theta = rand.nextDouble() * Math.PI * 2;
 	// all particles start off with the same weight
 	this.weight = -1 * Math.log( 1.0 / numParticles);
@@ -44,7 +52,7 @@ public class MapParticle {
     // performs a sensor update for this particle for bump sensors
     // bumpLoc is offset from local coordinates of robot
     // returns nothing, but particle weight changes
-    public void bumpSensorUpdate(Point2D bumpLoc){
+    public void bumpSensorUpdate(Point2D.Double bumpLoc){
     }
 
     // performs a sensor update for this particle for sonars
@@ -75,7 +83,7 @@ public class MapParticle {
     }
 
     // set the weight -- used for normalization
-    public double setWeight(double w){
+    public void setWeight(double w){
 	weight = w;
     }
 

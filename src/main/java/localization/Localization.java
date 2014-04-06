@@ -1,19 +1,20 @@
-package Localization;
+package localization;
 
 import java.util.ArrayList;
 
-import org.ros.message.rss_msgs.BumpMsg;
-import org.ros.message.rss_msgs.OdometryMsg;
-import org.ros.message.rss_msgs.SonarMsg;
-import org.ros.message.rss_msgs.MapMsg;
-import org.ros.message.rss_msgs.PositionMsg;
-import org.ros.message.rss_msgs.
+import rss_msgs.BumpMsg;
+import rss_msgs.OdometryMsg;
+import rss_msgs.SonarMsg;
+import rss_msgs.MapMsg;
+import rss_msgs.PositionMsg;
+import rss_msgs.FiducialMsg;
 import org.ros.namespace.GraphName;
 import org.ros.node.Node;
+import org.ros.node.ConnectedNode;
 import org.ros.node.NodeMain;
 import org.ros.node.topic.Publisher;
 import org.ros.node.topic.Subscriber;
-
+import org.ros.message.MessageListener;
 
 /*
  * @author - bhomberg 
@@ -23,7 +24,8 @@ public class Localization implements NodeMain{
 
     // TODO: bump and fiducial updates
     // finish renormalizing and resampling
-    // actually finish map pipeline
+
+    String mapFile = "~//rss-team-6//src//rosjava_pkg//localization//src//main//java//localization//global-nav-maze-2011-basic.map";
 
     // Subscribers
     protected Subscriber<BumpMsg> bumpSub;
@@ -45,7 +47,7 @@ public class Localization implements NodeMain{
     protected int RESAMPLING_COUNT = 0;
 
     @Override
-    public void onStart(Node node) {
+    public void onStart(ConnectedNode node) {
      
 	// Publishers
         mapPub = node.newPublisher("/loc/map", "rss_msgs/MapMsg");
@@ -93,7 +95,7 @@ public class Localization implements NodeMain{
 	// TODO: figure how we get the map
 	mapParticleList = new ArrayList<MapParticle>();
 	for(int i=0; i<MAX_PARTICLES; i++){
-	    mapParticleList.add(new MapParticle(defaultMap, MAX_PARTICLES));
+	    mapParticleList.add(new MapParticle(mapFile, MAX_PARTICLES));
 	}
     }
     
@@ -108,7 +110,7 @@ public class Localization implements NodeMain{
     // updates the particle list, doesn't return anything
     public void sonarSensorUpdate(SonarMsg msg) {
         for(MapParticle p : mapParticleList){
-	    p.sonarSensorUpdate(msg.sonarValues);
+	    p.sonarSensorUpdate(msg.getSonarValues());
 	}
     }
 
@@ -123,7 +125,7 @@ public class Localization implements NodeMain{
     // updates the particle list, doesn't return anything
     public void motionUpdate(OdometryMsg msg) {
 	for(MapParticle p : mapParticleList){
-	    p.motionUpdate(msg.x, msg.y, msg.theta, msg.time);
+	    p.motionUpdate(msg.getX(), msg.getY(), msg.getTheta(), msg.getTime());
 	}
 
 	// coordinate resampling based off of motion updates
@@ -160,6 +162,10 @@ public class Localization implements NodeMain{
 
     @Override
     public GraphName getDefaultNodeName() {
-        return new GraphName("rss/localization");
+        return GraphName.of("rss/localization");
+    }
+
+    @Override
+    public void onError(Node node, Throwable error) {
     }
 }
