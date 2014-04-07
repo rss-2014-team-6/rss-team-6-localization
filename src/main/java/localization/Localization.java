@@ -55,6 +55,8 @@ public class Localization implements NodeMain{
     protected double curr_theta;
     protected double curr_time;
 
+    protected boolean initialized;
+
     @Override
     public void onStart(ConnectedNode node) {
      
@@ -107,14 +109,7 @@ public class Localization implements NodeMain{
 	    mapParticleList.add(new MapParticle(mapFile, MAX_PARTICLES));
 	}
 
-	start_x = null;
-	start_y = null;
-	start_theta = null;
-	start_time = null;
-	curr_x = null;
-	curr_y = null;
-	curr_theta = null;
-	curr_time = null;
+	initialized = false;
     }
     
     // performs sensor updates based on bump sensor values for all particles
@@ -123,7 +118,7 @@ public class Localization implements NodeMain{
         // TODO: sensor update
 	// vaguely -- only send when true?
 
-	if(start_x != null)
+	if(initialized)
 	    for(MapParticle p : mapParticleList){
 		p.motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, curr_time - start_time);
 	    }
@@ -146,7 +141,7 @@ public class Localization implements NodeMain{
     // updates the particle list, doesn't return anything
     public void sonarSensorUpdate(SonarMsg msg) {
 	//update odometry before updating sensors
-	if(start_x != null)
+	if(!initialized)
 	    for(MapParticle p : mapParticleList){
 		p.motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, curr_time - start_time);
 	    }
@@ -186,11 +181,12 @@ public class Localization implements NodeMain{
 	curr_theta = msg.getTheta();
 	curr_time = msg.getTime();
 
-	if(start_x == null){
+	if(!initialized){
 	    start_x = msg.getX();
 	    start_y = msg.getY();
 	    start_theta = msg.getTheta();
 	    start_time = msg.getTime();
+	    initialized = true;
 	}
     }    
     
