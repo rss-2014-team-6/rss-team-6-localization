@@ -72,9 +72,9 @@ public class MapParticle {
     // takes in delta values from odometry message
     // returns nothing, but particle position changes
     public void motionUpdate(double deltaX, double deltaY, double deltaTheta, double deltaTime){
-	x += sample(deltaX, X_VARIANCE);
-	y += sample(deltaY, Y_VARIANCE);
-	theta += sample(deltaTheta, THETA_VARIANCE);
+	x += sample(deltaX, X_VARIANCE)*deltaTime;
+	y += sample(deltaY, Y_VARIANCE)*deltaTime;
+	theta += sample(deltaTheta, THETA_VARIANCE)*deltaTime;
     }
 
     // returns the weight

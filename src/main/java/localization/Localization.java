@@ -41,21 +41,30 @@ public class Localization implements NodeMain{
 
     protected final int MAX_PARTICLES = 200;
 
-    protected boolean RESAMPLING = true;
+    protected boolean RESAMPLING = false;
     protected int RESAMPLING_FREQUENCY = 1000; // we should calibrate this -- my guess is we want to resample
                                                // about once a minute
     protected int RESAMPLING_COUNT = 0;
+
+    protected double start_x;
+    protected double start_y;
+    protected double start_theta;
+    protected double start_time;
+    protected double curr_x;
+    protected double curr_y;
+    protected double curr_theta;
+    protected double curr_time;
 
     @Override
     public void onStart(ConnectedNode node) {
      
 	// Publishers
-        mapPub = node.newPublisher("/loc/map", "rss_msgs/MapMsg");
-        posPub = node.newPublisher("/loc/position", "rss_msgs/PositionMsg");
+        mapPub = node.newPublisher("/loc/Map", "rss_msgs/MapMsg");
+        posPub = node.newPublisher("/loc/Position", "rss_msgs/PositionMsg");
 
 
 	// Subscribers
-	bumpSub = node.newSubscriber("/uorc/bump", "rss_msgs/BumpMsg");
+	bumpSub = node.newSubscriber("/sense/Bump", "rss_msgs/BumpMsg");
         bumpSub.addMessageListener(new MessageListener<BumpMsg>() {
             @Override
             public void onNewMessage(BumpMsg msg) {
@@ -64,7 +73,7 @@ public class Localization implements NodeMain{
         });
 
 
-	sonSub = node.newSubscriber("/uorc/sonar", "rss_msgs/SonarMsg");
+	sonSub = node.newSubscriber("/sense/Sonar", "rss_msgs/SonarMsg");
 	sonSub.addMessageListener(new MessageListener<SonarMsg>() {
             @Override
             public void onNewMessage(SonarMsg msg) {
@@ -73,7 +82,7 @@ public class Localization implements NodeMain{
         });
 
 
-	fidSub = node.newSubscriber("/uorc/fiducial", "rss_msgs/FiducialMsg");
+	fidSub = node.newSubscriber("/vis/Fiducial", "rss_msgs/FiducialMsg");
 	fidSub.addMessageListener(new MessageListener<FiducialMsg>() {
             @Override
             public void onNewMessage(FiducialMsg msg) {
@@ -82,7 +91,7 @@ public class Localization implements NodeMain{
         });
 
 
-        odoSub = node.newSubscriber("/odo/odometry", "rss_msgs/OdometryMsg");
+        odoSub = node.newSubscriber("/odo/Odometry", "rss_msgs/OdometryMsg");
 	odoSub.addMessageListener(new MessageListener<OdometryMsg>() {
             @Override
             public void onNewMessage(OdometryMsg msg) {
@@ -97,6 +106,15 @@ public class Localization implements NodeMain{
 	for(int i=0; i<MAX_PARTICLES; i++){
 	    mapParticleList.add(new MapParticle(mapFile, MAX_PARTICLES));
 	}
+
+	start_x = null;
+	start_y = null;
+	start_theta = null;
+	start_time = null;
+	curr_x = null;
+	curr_y = null;
+	curr_theta = null;
+	curr_time = null;
     }
     
     // performs sensor updates based on bump sensor values for all particles
@@ -104,14 +122,53 @@ public class Localization implements NodeMain{
     public void bumpSensorUpdate(BumpMsg msg) {
         // TODO: sensor update
 	// vaguely -- only send when true?
+
+	if(start_x != null)
+	    for(MapParticle p : mapParticleList){
+		p.motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, curr_time - start_time);
+	    }
+
+	
+	start_x = curr_x;
+	start_y = curr_y;
+	start_theta = curr_theta;
+	start_time = curr_time;
+	
+	// coordinate resampling based off of motion updates
+	if(RESAMPLING)
+	    RESAMPLING_COUNT++;
+	if(RESAMPLING_COUNT >= RESAMPLING_FREQUENCY)
+	    resample();
+
     }
 
     // performs sensor updates based on sonar values for all particles
     // updates the particle list, doesn't return anything
     public void sonarSensorUpdate(SonarMsg msg) {
-        for(MapParticle p : mapParticleList){
+	//update odometry before updating sensors
+	if(start_x != null)
+	    for(MapParticle p : mapParticleList){
+		p.motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, curr_time - start_time);
+	    }
+	
+
+	start_x = curr_x;
+	start_y = curr_y;
+	start_theta = curr_theta;
+	start_time = curr_time;
+	
+	for(MapParticle p : mapParticleList){
 	    p.sonarSensorUpdate(msg.getSonarValues());
 	}
+
+
+	// coordinate resampling based off of motion updates
+	if(RESAMPLING)
+	    RESAMPLING_COUNT++;
+	if(RESAMPLING_COUNT >= RESAMPLING_FREQUENCY)
+	    resample();	
+
+	
     }
 
     // performs sensor updates based on fiducial observation
@@ -124,15 +181,17 @@ public class Localization implements NodeMain{
     // performs motion updates based on odometry for all particles
     // updates the particle list, doesn't return anything
     public void motionUpdate(OdometryMsg msg) {
-	for(MapParticle p : mapParticleList){
-	    p.motionUpdate(msg.getX(), msg.getY(), msg.getTheta(), msg.getTime());
-	}
+	curr_x = msg.getX();
+	curr_y = msg.getY();
+	curr_theta = msg.getTheta();
+	curr_time = msg.getTime();
 
-	// coordinate resampling based off of motion updates
-	if(RESAMPLING)
-	    RESAMPLING_COUNT++;
-	if(RESAMPLING_COUNT >= RESAMPLING_FREQUENCY)
-	    resample();
+	if(start_x == null){
+	    start_x = msg.getX();
+	    start_y = msg.getY();
+	    start_theta = msg.getTheta();
+	    start_time = msg.getTime();
+	}
     }    
     
     // renormalize particles
