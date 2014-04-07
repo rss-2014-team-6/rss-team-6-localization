@@ -7,6 +7,8 @@ import java.util.Random;
 import java.lang.Math;
 import org.apache.commons.math3.distribution.NormalDistribution; // will we have access to this?
 
+import map.PolygonMap;
+
 /*
  * @author - bhomberg
  */
@@ -85,6 +87,11 @@ public class MapParticle {
     // set the weight -- used for normalization
     public void setWeight(double w){
 	weight = w;
+    }
+
+    // get the current map estimate for this particle
+    public PolygonMap getMap(){
+        return map;
     }
 
     // performs a Gaussian sample

@@ -1,4 +1,4 @@
-package localization;
+package map;
 
 //import java.awt.geom.Point2D.Double;
 import java.lang.Double;

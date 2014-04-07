@@ -1,7 +1,13 @@
 package localization;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 
+import org.jboss.netty.buffer.ChannelBuffers;
+
+import map.PolygonMap;
 import rss_msgs.BumpMsg;
 import rss_msgs.OdometryMsg;
 import rss_msgs.SonarMsg;
@@ -12,6 +18,7 @@ import org.ros.namespace.GraphName;
 import org.ros.node.Node;
 import org.ros.node.ConnectedNode;
 import org.ros.node.NodeMain;
+import org.ros.node.parameter.ParameterTree;
 import org.ros.node.topic.Publisher;
 import org.ros.node.topic.Subscriber;
 import org.ros.message.MessageListener;
@@ -24,8 +31,6 @@ public class Localization implements NodeMain{
 
     // TODO: bump and fiducial updates
     // finish renormalizing and resampling
-
-    String mapFile = "~//rss-team-6//src//rosjava_pkg//localization//src//main//java//localization//global-nav-maze-2011-basic.map";
 
     // Subscribers
     protected Subscriber<BumpMsg> bumpSub;
@@ -92,7 +97,8 @@ public class Localization implements NodeMain{
 
 
 	// initialize particles
-	// TODO: figure how we get the map
+        ParameterTree paramTree = node.getParameterTree();
+        String mapFile = paramTree.getString(node.resolveName("~/mapFileName"));
 	mapParticleList = new ArrayList<MapParticle>();
 	for(int i=0; i<MAX_PARTICLES; i++){
 	    mapParticleList.add(new MapParticle(mapFile, MAX_PARTICLES));
@@ -104,6 +110,30 @@ public class Localization implements NodeMain{
     public void bumpSensorUpdate(BumpMsg msg) {
         // TODO: sensor update
 	// vaguely -- only send when true?
+
+        // Best weight is the minimum, since we're using negative log
+        double minWeight = Double.POSITIVE_INFINITY;
+        MapParticle bestParticle = null;
+        for (MapParticle particle : mapParticleList) {
+            if (particle.getWeight() < minWeight) {
+                minWeight = particle.getWeight();
+                bestParticle = particle;
+            }
+        }
+        // Serialize and publish the map
+        PolygonMap map = bestParticle.getMap();
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        try {
+            ObjectOutputStream stream = new ObjectOutputStream(byteStream);
+            stream.writeObject(map);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("IOException on serializing map");
+        }
+        MapMsg mapMsg = mapPub.newMessage();
+        mapMsg.setSerializedMap(ChannelBuffers.wrappedBuffer(byteStream.toByteArray()));
+        mapPub.publish(mapMsg);
     }
 
     // performs sensor updates based on sonar values for all particles

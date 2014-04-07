@@ -16,5 +16,6 @@ dependencies {
   compile 'org.ros.rosjava_messages:sensor_msgs:[0.1,)'
   compile 'com.github.rosjava.rosjava_msg_pkg:rss_msgs:[0.1,)'
   compile 'org.apache.commons:commons-math3:[0.1,)'
+  compile 'org.jboss.netty:netty:[0.1,)'
 }
 
