@@ -54,14 +54,14 @@ public class MapParticle {
     // performs a sensor update for this particle for bump sensors
     // bumpLoc is offset from local coordinates of robot
     // returns nothing, but particle weight changes
-    public void bumpSensorUpdate(Point2D.Double bumpLoc){
+    public synchronized void bumpSensorUpdate(Point2D.Double bumpLoc){
     }
 
     // performs a sensor update for this particle for sonars
     // sonarMeasurements are ranges
     // returns nothing, but particle weight changes
     // eventually, here we'll think about adding new obstacles
-    public void sonarSensorUpdate(double[] sonarMeasurements){
+    public synchronized void sonarSensorUpdate(double[] sonarMeasurements){
 	double[] predicted = map.predictSonars(x, y, theta);
 	double logprob = 0;
 	for(int i=0; i<predicted.length; i++){
@@ -73,7 +73,7 @@ public class MapParticle {
     // performs a motion update for this particle
     // takes in delta values from odometry message
     // returns nothing, but particle position changes
-    public void motionUpdate(double deltaX, double deltaY, double deltaTheta, double deltaTime){
+    public synchronized void motionUpdate(double deltaX, double deltaY, double deltaTheta, double deltaTime){
 	x += sample(deltaX, X_VARIANCE)*deltaTime;
 	y += sample(deltaY, Y_VARIANCE)*deltaTime;
 	theta += sample(deltaTheta, THETA_VARIANCE)*deltaTime;
@@ -85,7 +85,7 @@ public class MapParticle {
     }
 
     // set the weight -- used for normalization
-    public void setWeight(double w){
+    public synchronized void setWeight(double w){
 	weight = w;
     }
 
