@@ -94,6 +94,21 @@ public class MapParticle {
         return map;
     }
 
+    // get the x coord
+    public double getX() {
+        return x;
+    }
+
+    // get the y coord
+    public double getY() {
+        return y;
+    }
+
+    // get the theta coord
+    public double getTheta() {
+        return theta;
+    }
+
     // performs a Gaussian sample
     // takes in a mean value and a variance
     // returns a random sample
