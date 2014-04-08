@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.LinkedList;
 import java.util.List;
-
+import java.io.Serializable;
 
 /**
  * <p>The 2D {@link #worldRect}, {@link PolygonObstacle} {@link #obstacles},
@@ -49,7 +49,7 @@ import java.util.List;
  *
  * @author Bianca Homberg -- changes for rss competition team 6
  **/
-public class PolygonMap{
+public class PolygonMap implements java.io.Serializable{
 
     // The start point for the robot origin, read in from the map file
     public Point2D.Double robotStart = new Point2D.Double();
