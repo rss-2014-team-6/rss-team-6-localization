@@ -3,6 +3,7 @@ package map;
 import java.awt.geom.*;
 import java.util.*;
 import java.awt.Color;
+import java.io.Serializable;
 
 /**
  * <p>Represents a polygonal obstacle.<p>
@@ -14,7 +15,7 @@ import java.awt.Color;
  *
  * @author Marty Vona
  **/
-public class PolygonObstacle {
+public class PolygonObstacle implements java.io.Serializable{
 
   /**
    * <p>Underlying implementation of the geometry.</p>
