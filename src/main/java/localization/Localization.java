@@ -120,7 +120,7 @@ public class Localization implements NodeMain{
     
     // performs sensor updates based on bump sensor values for all particles
     // updates the particle list, doesn't return anything
-    public void bumpSensorUpdate(BumpMsg msg) {
+    public synchronized void bumpSensorUpdate(BumpMsg msg) {
         // TODO: sensor update
 	// vaguely -- only send when true?
 
@@ -175,7 +175,7 @@ public class Localization implements NodeMain{
 
     // performs sensor updates based on sonar values for all particles
     // updates the particle list, doesn't return anything
-    public void sonarSensorUpdate(SonarMsg msg) {
+    public synchronized void sonarSensorUpdate(SonarMsg msg) {
 	//update odometry before updating sensors
 	if(!initialized)
 	    for(MapParticle p : mapParticleList){
@@ -204,14 +204,14 @@ public class Localization implements NodeMain{
 
     // performs sensor updates based on fiducial observation
     // updates the particle list, doesn't return anything
-    public void fiducialSensorUpdate(FiducialMsg msg){
+    public synchronized void fiducialSensorUpdate(FiducialMsg msg){
 	// TODO: sensor update
 	// can do similarly to sonar update
     }
 
     // performs motion updates based on odometry for all particles
     // updates the particle list, doesn't return anything
-    public void motionUpdate(OdometryMsg msg) {
+    public synchronized void motionUpdate(OdometryMsg msg) {
 	curr_x = msg.getX();
 	curr_y = msg.getY();
 	curr_theta = msg.getTheta();
@@ -229,13 +229,13 @@ public class Localization implements NodeMain{
     // renormalize particles
     // this induces error -- since we need to represent weights as actual probabilities -- so
     // we avoid calling this unless we need them to resample
-    public void renormalize(){
+    public synchronized void renormalize(){
 	double sum = 0;
 	
     }
 
     // resample particles
-    public void resample(){
+    public synchronized void resample(){
 	renormalize();
 	RESAMPLING_COUNT = 0;
     }
