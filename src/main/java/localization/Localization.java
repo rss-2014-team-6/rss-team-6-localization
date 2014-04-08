@@ -165,6 +165,12 @@ public class Localization implements NodeMain{
         MapMsg mapMsg = mapPub.newMessage();
         mapMsg.setSerializedMap(ChannelBuffers.wrappedBuffer(byteStream.toByteArray()));
         mapPub.publish(mapMsg);
+        // Publish the position estimate
+        PositionMsg posMsg = posPub.newMessage();
+        posMsg.setX(bestParticle.getX());
+        posMsg.setY(bestParticle.getY());
+        posMsg.setTheta(bestParticle.getTheta());
+        posPub.publish(posMsg);
     }
 
     // performs sensor updates based on sonar values for all particles
