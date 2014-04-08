@@ -33,34 +33,34 @@ public class Localization implements NodeMain{
     // finish renormalizing and resampling
 
     // Subscribers
-    protected Subscriber<BumpMsg> bumpSub;
-    protected Subscriber<OdometryMsg> odoSub;
-    protected Subscriber<SonarMsg> sonSub;
-    protected Subscriber<FiducialMsg> fidSub;
+    protected static Subscriber<BumpMsg> bumpSub;
+    protected static Subscriber<OdometryMsg> odoSub;
+    protected static Subscriber<SonarMsg> sonSub;
+    protected static Subscriber<FiducialMsg> fidSub;
 
     // Publishers
-    protected Publisher<MapMsg> mapPub;
-    protected Publisher<PositionMsg> posPub;
+    protected static Publisher<MapMsg> mapPub;
+    protected static Publisher<PositionMsg> posPub;
 
-    protected ArrayList<MapParticle> mapParticleList;
+    protected static ArrayList<MapParticle> mapParticleList;
 
-    protected final int MAX_PARTICLES = 200;
+    protected static final int MAX_PARTICLES = 200;
 
-    protected boolean RESAMPLING = false;
-    protected int RESAMPLING_FREQUENCY = 1000; // we should calibrate this -- my guess is we want to resample
+    protected static boolean RESAMPLING = false;
+    protected static int RESAMPLING_FREQUENCY = 1000; // we should calibrate this -- my guess is we want to resample
                                                // about once a minute
-    protected int RESAMPLING_COUNT = 0;
+    protected static int RESAMPLING_COUNT = 0;
 
-    protected double start_x;
-    protected double start_y;
-    protected double start_theta;
-    protected double start_time;
-    protected double curr_x;
-    protected double curr_y;
-    protected double curr_theta;
-    protected double curr_time;
+    protected static double start_x;
+    protected static double start_y;
+    protected static double start_theta;
+    protected static double start_time;
+    protected static double curr_x;
+    protected static double curr_y;
+    protected static double curr_theta;
+    protected static double curr_time;
 
-    protected boolean initialized;
+    protected static boolean initialized;
 
     @Override
     public void onStart(ConnectedNode node) {
@@ -120,7 +120,7 @@ public class Localization implements NodeMain{
     
     // performs sensor updates based on bump sensor values for all particles
     // updates the particle list, doesn't return anything
-    public synchronized void bumpSensorUpdate(BumpMsg msg) {
+    public static synchronized void bumpSensorUpdate(BumpMsg msg) {
         // TODO: sensor update
 	// vaguely -- only send when true?
 
@@ -175,7 +175,7 @@ public class Localization implements NodeMain{
 
     // performs sensor updates based on sonar values for all particles
     // updates the particle list, doesn't return anything
-    public synchronized void sonarSensorUpdate(SonarMsg msg) {
+    public static synchronized void sonarSensorUpdate(SonarMsg msg) {
 	//update odometry before updating sensors
 	if(!initialized)
 	    for(MapParticle p : mapParticleList){
@@ -204,14 +204,14 @@ public class Localization implements NodeMain{
 
     // performs sensor updates based on fiducial observation
     // updates the particle list, doesn't return anything
-    public synchronized void fiducialSensorUpdate(FiducialMsg msg){
+    public static synchronized void fiducialSensorUpdate(FiducialMsg msg){
 	// TODO: sensor update
 	// can do similarly to sonar update
     }
 
     // performs motion updates based on odometry for all particles
     // updates the particle list, doesn't return anything
-    public synchronized void motionUpdate(OdometryMsg msg) {
+    public static synchronized void motionUpdate(OdometryMsg msg) {
 	curr_x = msg.getX();
 	curr_y = msg.getY();
 	curr_theta = msg.getTheta();
@@ -229,13 +229,13 @@ public class Localization implements NodeMain{
     // renormalize particles
     // this induces error -- since we need to represent weights as actual probabilities -- so
     // we avoid calling this unless we need them to resample
-    public synchronized void renormalize(){
+    public static synchronized void renormalize(){
 	double sum = 0;
 	
     }
 
     // resample particles
-    public synchronized void resample(){
+    public static synchronized void resample(){
 	renormalize();
 	RESAMPLING_COUNT = 0;
     }
