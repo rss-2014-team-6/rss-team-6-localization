@@ -113,9 +113,11 @@ public class Localization implements NodeMain{
 	// initialize particles
         ParameterTree paramTree = node.getParameterTree();
         String mapFile = paramTree.getString(node.resolveName("/loc/mapFileName"));
-	mapParticleList = new ArrayList<MapParticle>();
-	for(int i=0; i<MAX_PARTICLES; i++){
-	    mapParticleList.add(new MapParticle(mapFile, MAX_PARTICLES));
+	synchronized(mapParticleList){
+	    mapParticleList = new ArrayList<MapParticle>();
+	    for(int i=0; i<MAX_PARTICLES; i++){
+		mapParticleList.add(new MapParticle(mapFile, MAX_PARTICLES));
+	    }
 	}
 
 	initialized = false;
@@ -128,8 +130,10 @@ public class Localization implements NodeMain{
 	// vaguely -- only send when true?
 
 	if(initialized) {
-	    for(MapParticle p : mapParticleList){
-		p.motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, (curr_time - start_time) * MILLIS_TO_SECS);
+	    synchronized(mapParticleList){
+		for(MapParticle p : mapParticleList){
+		    p.motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, (curr_time - start_time) * MILLIS_TO_SECS);
+		}
 	    }
 
 	    System.out.println("bumpSensorUpdate: " + (curr_x - start_x) + ", " + (curr_y - start_y) + ", " + (curr_theta - start_theta));
@@ -182,7 +186,7 @@ public class Localization implements NodeMain{
     // updates the particle list, doesn't return anything
     public static synchronized void sonarSensorUpdate(SonarMsg msg) {
 	//update odometry before updating sensors
-	if(!initialized)
+	/*	if(!initialized)
 	    for(MapParticle p : mapParticleList){
 		p.motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, (curr_time - start_time) * MILLIS_TO_SECS);
 	    }
@@ -204,7 +208,7 @@ public class Localization implements NodeMain{
 	if(RESAMPLING_COUNT >= RESAMPLING_FREQUENCY)
 	    resample();	
 
-	
+	*/
     }
 
     // performs sensor updates based on fiducial observation
@@ -220,13 +224,13 @@ public class Localization implements NodeMain{
 	curr_x = msg.getX();
 	curr_y = msg.getY();
 	curr_theta = msg.getTheta();
-	curr_time = msg.getTime();
+	curr_time = (long) msg.getTime(); // seems to build fine on the eeepc but complains on my comp without this
 
 	if(!initialized){
 	    start_x = msg.getX();
 	    start_y = msg.getY();
 	    start_theta = msg.getTheta();
-	    start_time = msg.getTime();
+	    start_time = (long) msg.getTime();
 	    initialized = true;
 	}
     }    
