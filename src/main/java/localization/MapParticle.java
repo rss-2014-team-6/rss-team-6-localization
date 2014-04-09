@@ -29,9 +29,9 @@ public class MapParticle {
     // numbers are pulled out of a hat for now
     private final double SONAR_VARIANCE = .05;
     private final double FIDUCIAL_VARIANCE = .2;
-    private final double X_VARIANCE = .01;
-    private final double Y_VARIANCE = .01;
-    private final double THETA_VARIANCE = .03;
+    private final double X_VARIANCE = .001;
+    private final double Y_VARIANCE = .001;
+    private final double THETA_VARIANCE = .003;
 
     // constructor
     // takes in starting map file and total number of particles
@@ -76,9 +76,10 @@ public class MapParticle {
     // takes in delta values from odometry message
     // returns nothing, but particle position changes
     public synchronized void motionUpdate(double deltaX, double deltaY, double deltaTheta, double deltaTime){
-	x += sample(deltaX, X_VARIANCE*deltaTime);
-	y += sample(deltaY, Y_VARIANCE*deltaTime);
-	theta += sample(deltaTheta, THETA_VARIANCE*deltaTime);
+	double dist = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
+	x += sample(deltaX, X_VARIANCE*dist);
+	y += sample(deltaY, Y_VARIANCE*dist);
+	theta += sample(deltaTheta, THETA_VARIANCE*dist);
     }
 
     // returns the weight
