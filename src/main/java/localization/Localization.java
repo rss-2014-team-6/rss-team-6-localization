@@ -23,10 +23,6 @@ import org.ros.node.topic.Publisher;
 import org.ros.node.topic.Subscriber;
 import org.ros.message.MessageListener;
 
-/*
- * @author - bhomberg 
- */
-
 public class Localization implements NodeMain{
 
     // Conversion between ms and secs
@@ -171,9 +167,9 @@ public class Localization implements NodeMain{
             e.printStackTrace();
             throw new RuntimeException("IOException on serializing map");
         }
-        /*MapMsg mapMsg = mapPub.newMessage();
+        MapMsg mapMsg = mapPub.newMessage();
         mapMsg.setSerializedMap(ChannelBuffers.wrappedBuffer(byteStream.toByteArray()));
-        mapPub.publish(mapMsg);*/ // serializing is still throwing errors :(
+        mapPub.publish(mapMsg);
         // Publish the position estimate
         PositionMsg posMsg = posPub.newMessage();
         posMsg.setX(bestParticle.getX());
