@@ -167,15 +167,25 @@ public class Localization implements NodeMain{
             e.printStackTrace();
             throw new RuntimeException("IOException on serializing map");
         }
+	/*
         MapMsg mapMsg = mapPub.newMessage();
+	byte[] ba = byteStream.toByteArray();
+	System.out.println("Byte stream byte array: " + ba);
+	for (int i = 0; i < ba.length; i++) {
+	    System.out.print(ba[i]);
+	}
+	System.out.print("\n");
         mapMsg.setSerializedMap(ChannelBuffers.wrappedBuffer(byteStream.toByteArray()));
-        mapPub.publish(mapMsg);
+        mapPub.publish(mapMsg);*/
         // Publish the position estimate
+
+	System.out.println("\n\nLOC part vals: " + bestParticle.getX() + ", " + bestParticle.getY() + ", " + bestParticle.getTheta());
         PositionMsg posMsg = posPub.newMessage();
         posMsg.setX(bestParticle.getX());
         posMsg.setY(bestParticle.getY());
         posMsg.setTheta(bestParticle.getTheta());
         posPub.publish(posMsg);
+	System.out.println("\n\n LOC msg vals: " + posMsg.getX() + ", " + posMsg.getY() + ", " + posMsg.getTheta());
     }
 
     // performs sensor updates based on sonar values for all particles
