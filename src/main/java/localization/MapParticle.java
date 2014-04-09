@@ -1,4 +1,4 @@
-package localization;
+\package localization;
 
 import java.awt.geom.Point2D;
 import java.io.IOException;
@@ -49,7 +49,9 @@ public class MapParticle {
 	this.theta = rand.nextDouble() * Math.PI * 2;
 	// all particles start off with the same weight
 	this.weight = -1 * Math.log( 1.0 / numParticles);
-    }
+ 
+	System.out.println("MAP PARTICLE: x: " + this.x + ", y: " + this.y);
+   }
 
     // performs a sensor update for this particle for bump sensors
     // bumpLoc is offset from local coordinates of robot

@@ -131,6 +131,8 @@ public class Localization implements NodeMain{
 	    for(MapParticle p : mapParticleList){
 		p.motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, (curr_time - start_time) * MILLIS_TO_SECS);
 	    }
+
+	    System.out.println("bumpSensorUpdate: " + (curr_x - start_x) + ", " + (curr_y - start_y) + ", " + (curr_theta - start_theta));
         }
 
 	
