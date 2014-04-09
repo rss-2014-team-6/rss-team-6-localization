@@ -113,8 +113,8 @@ public class Localization implements NodeMain{
 	// initialize particles
         ParameterTree paramTree = node.getParameterTree();
         String mapFile = paramTree.getString(node.resolveName("/loc/mapFileName"));
+	mapParticleList = new ArrayList<MapParticle>();
 	synchronized(mapParticleList){
-	    mapParticleList = new ArrayList<MapParticle>();
 	    for(int i=0; i<MAX_PARTICLES; i++){
 		mapParticleList.add(new MapParticle(mapFile, MAX_PARTICLES));
 	    }
