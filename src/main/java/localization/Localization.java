@@ -29,6 +29,9 @@ import org.ros.message.MessageListener;
 
 public class Localization implements NodeMain{
 
+    // Conversion between ms and secs
+    private static final double MILLIS_TO_SECS = 0.001;
+
     // TODO: bump and fiducial updates
     // finish renormalizing and resampling
 
@@ -54,11 +57,11 @@ public class Localization implements NodeMain{
     protected static double start_x;
     protected static double start_y;
     protected static double start_theta;
-    protected static double start_time;
+    protected static long start_time;
     protected static double curr_x;
     protected static double curr_y;
     protected static double curr_theta;
-    protected static double curr_time;
+    protected static long curr_time;
 
     protected static boolean initialized;
 
@@ -126,7 +129,7 @@ public class Localization implements NodeMain{
 
 	if(initialized) {
 	    for(MapParticle p : mapParticleList){
-		p.motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, curr_time - start_time);
+		p.motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, (curr_time - start_time) * MILLIS_TO_SECS);
 	    }
         }
 
@@ -179,7 +182,7 @@ public class Localization implements NodeMain{
 	//update odometry before updating sensors
 	if(!initialized)
 	    for(MapParticle p : mapParticleList){
-		p.motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, curr_time - start_time);
+		p.motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, (curr_time - start_time) * MILLIS_TO_SECS);
 	    }
 	
 
