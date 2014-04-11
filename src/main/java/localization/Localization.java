@@ -23,6 +23,10 @@ import org.ros.node.topic.Publisher;
 import org.ros.node.topic.Subscriber;
 import org.ros.message.MessageListener;
 
+import java.lang.Runtime;
+import java.lang.Thread;
+import java.util.concurrent.Executors;
+
 public class Localization implements NodeMain{
 
     // Conversion between ms and secs
@@ -41,7 +45,7 @@ public class Localization implements NodeMain{
     protected Publisher<MapMsg> mapPub;
     protected Publisher<PositionMsg> posPub;
 
-    protected ArrayList<MapParticle> mapParticleList;
+    protected final ArrayList<MapParticle> mapParticleList;
 
     protected final int MAX_PARTICLES = 200;
 
@@ -60,6 +64,8 @@ public class Localization implements NodeMain{
     protected long curr_time;
 
     protected boolean initialized;
+
+    ExecutorService threadpool;
 
     @Override
     public synchronized void onStart(ConnectedNode node) {
@@ -105,20 +111,31 @@ public class Localization implements NodeMain{
             }
         });
 
+	//have not initialized motion yet
+	initialized = false;
+
+	//initialize threadpool
+	threadpool = Executors.newCachedThreadPool();
+
 
 	// initialize particles
         ParameterTree paramTree = node.getParameterTree();
-        String mapFile = paramTree.getString(node.resolveName("/loc/mapFileName"));
+        final String mapFile = paramTree.getString(node.resolveName("/loc/mapFileName"));
 	mapParticleList = new ArrayList<MapParticle>();
-	synchronized(mapParticleList){
-	    for(int i=0; i<MAX_PARTICLES; i++){
-		mapParticleList.add(new MapParticle(mapFile, MAX_PARTICLES));
-	    }
-	}
 
-	initialized = false;
+	for(int i=0; i<MAX_PARTICLES; i++){
+	    threadpool.execute(new Runnable() {
+		    @Override public void run() {
+			//create object first in order to synchronize on it
+			MapParticle temp = new MapParticle(mapFile, MAX_PARTICLES);
+			synchronized(temp){
+			    mapParticleList.add(temp);
+			}
+		    }
+		});
+	}
     }
-    
+	
     // performs sensor updates based on bump sensor values for all particles
     // updates the particle list, doesn't return anything
     public synchronized void bumpSensorUpdate(BumpMsg msg) {
@@ -126,10 +143,16 @@ public class Localization implements NodeMain{
 	// vaguely -- only send when true?
 
 	if(initialized) {
-	    for(MapParticle p : mapParticleList){
-		p.motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, (curr_time - start_time) * MILLIS_TO_SECS);
+	    for(int i=0; i<mapParticleList.size(); i++){
+		threadpool.execute(new Runnable() {
+			@Override public void run() {
+			    synchronized(mapParticleList.get(i)){
+				mapParticleList.get(i).motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, (curr_time - start_time) * MILLIS_TO_SECS);
+			    }
+			}
+		    });
 	    }
-
+	    
 	    System.out.println("bumpSensorUpdate: " + (curr_x - start_x) + ", " + (curr_y - start_y) + ", " + (curr_theta - start_theta) + ", " + (curr_time - start_time) * MILLIS_TO_SECS);
         }
 
