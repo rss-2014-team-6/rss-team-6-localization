@@ -107,7 +107,7 @@ public class Localization implements NodeMain{
 	odoSub.addMessageListener(new MessageListener<OdometryMsg>() {
             @Override
             public void onNewMessage(OdometryMsg msg) {
-                motionUpdate(msg);
+                currPosition(msg);
             }
         });
 
@@ -142,33 +142,20 @@ public class Localization implements NodeMain{
         // TODO: sensor update
 	// vaguely -- only send when true?
 
-	if(initialized) {
-	    for(int i=0; i<mapParticleList.size(); i++){
-		threadpool.execute(new Runnable() {
-			@Override public void run() {
-			    synchronized(mapParticleList.get(i)){
-				mapParticleList.get(i).motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, (curr_time - start_time) * MILLIS_TO_SECS);
-			    }
-			}
-		    });
-	    }
-	    
-	    System.out.println("bumpSensorUpdate: " + (curr_x - start_x) + ", " + (curr_y - start_y) + ", " + (curr_theta - start_theta) + ", " + (curr_time - start_time) * MILLIS_TO_SECS);
-        }
-
+	motionUpdate();
 	
-	start_x = curr_x;
-	start_y = curr_y;
-	start_theta = curr_theta;
-	start_time = curr_time;
+	System.out.println("bumpSensorUpdate: " + (curr_x - start_x) + ", " + (curr_y - start_y) + ", " + (curr_theta - start_theta) + ", " + (curr_time - start_time) * MILLIS_TO_SECS);
 	
-	// coordinate resampling based off of motion updates
-	if(RESAMPLING)
-	    RESAMPLING_COUNT++;
-	if(RESAMPLING_COUNT >= RESAMPLING_FREQUENCY)
-	    resample();
 
-        // Best weight is the minimum, since we're using negative log
+	//insert actual bump update here
+
+	resample();
+
+	publishMap();
+    }
+
+    public void publishMap(){
+	// Best weight is the minimum, since we're using negative log
         double minWeight = Double.POSITIVE_INFINITY;
         MapParticle bestParticle = null;
         for (MapParticle particle : mapParticleList) {
@@ -213,30 +200,14 @@ public class Localization implements NodeMain{
     // performs sensor updates based on sonar values for all particles
     // updates the particle list, doesn't return anything
     public synchronized void sonarSensorUpdate(SonarMsg msg) {
-	//update odometry before updating sensors
-	/*	if(!initialized)
-	    for(MapParticle p : mapParticleList){
-		p.motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, (curr_time - start_time) * MILLIS_TO_SECS);
-	    }
-	
+	motionUpdate();
 
-	start_x = curr_x;
-	start_y = curr_y;
-	start_theta = curr_theta;
-	start_time = curr_time;
-	
-	for(MapParticle p : mapParticleList){
+	/*for(MapParticle p : mapParticleList){
 	    p.sonarSensorUpdate(msg.getSonarValues());
-	}
+	    }*/
 
-
-	// coordinate resampling based off of motion updates
-	if(RESAMPLING)
-	    RESAMPLING_COUNT++;
-	if(RESAMPLING_COUNT >= RESAMPLING_FREQUENCY)
-	    resample();	
-
-	*/
+	resample();
+	publishMap();
     }
 
     // performs sensor updates based on fiducial observation
@@ -248,7 +219,26 @@ public class Localization implements NodeMain{
 
     // performs motion updates based on odometry for all particles
     // updates the particle list, doesn't return anything
-    public synchronized void motionUpdate(OdometryMsg msg) {
+    public synchronized void motionUpdate() {
+	if(initialized) {
+	    for(int i=0; i<mapParticleList.size(); i++){
+		threadpool.execute(new Runnable() {
+			@Override public void run() {
+			    synchronized(mapParticleList.get(i)){
+				mapParticleList.get(i).motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, (curr_time - start_time) * MILLIS_TO_SECS);
+			    }
+			}
+		    });
+	    }
+	}	
+	
+	start_x = curr_x;
+	start_y = curr_y;
+	start_theta = curr_theta;
+	start_time = curr_time;
+    }
+
+    public synchronized void currPosition(OdometryMsg msg) {
 	curr_x = msg.getX();
 	curr_y = msg.getY();
 	curr_theta = msg.getTheta();
@@ -273,8 +263,12 @@ public class Localization implements NodeMain{
 
     // resample particles
     public synchronized void resample(){
-	renormalize();
-	RESAMPLING_COUNT = 0;
+	if(RESAMPLING)
+	    RESAMPLING_COUNT++;
+	if(RESAMPLING_COUNT >= RESAMPLING_FREQUENCY){
+	    renormalize();
+	    RESAMPLING_COUNT = 0;
+	}
     }
 
     @Override
