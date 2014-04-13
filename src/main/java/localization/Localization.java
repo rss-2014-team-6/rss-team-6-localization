@@ -26,6 +26,7 @@ import org.ros.message.MessageListener;
 import java.lang.Runtime;
 import java.lang.Thread;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 
 public class Localization implements NodeMain{
 
@@ -45,7 +46,7 @@ public class Localization implements NodeMain{
     protected Publisher<MapMsg> mapPub;
     protected Publisher<PositionMsg> posPub;
 
-    protected final ArrayList<MapParticle> mapParticleList;
+    protected final ArrayList<MapParticle> mapParticleList = new ArrayList<MapParticle>();
 
     protected final int MAX_PARTICLES = 200;
 
@@ -121,19 +122,10 @@ public class Localization implements NodeMain{
 	// initialize particles
         ParameterTree paramTree = node.getParameterTree();
         final String mapFile = paramTree.getString(node.resolveName("/loc/mapFileName"));
-	mapParticleList = new ArrayList<MapParticle>();
 
-	for(int i=0; i<MAX_PARTICLES; i++){
-	    threadpool.execute(new Runnable() {
-		    @Override public void run() {
-			//create object first in order to synchronize on it
-			MapParticle temp = new MapParticle(mapFile, MAX_PARTICLES);
-			synchronized(temp){
-			    mapParticleList.add(temp);
-			}
-		    }
-		});
-	}
+        for(int i=0; i<MAX_PARTICLES; i++){
+            mapParticleList.add(new MapParticle(mapFile, MAX_PARTICLES));
+        }
     }
 	
     // performs sensor updates based on bump sensor values for all particles
@@ -222,15 +214,17 @@ public class Localization implements NodeMain{
     public synchronized void motionUpdate() {
 	if(initialized) {
 	    for(int i=0; i<mapParticleList.size(); i++){
-		threadpool.execute(new Runnable() {
+                final MapParticle particle = mapParticleList.get(i);
+		threadpool.execute(
+                    new Runnable() {
 			@Override public void run() {
-			    synchronized(mapParticleList.get(i)){
-				mapParticleList.get(i).motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, (curr_time - start_time) * MILLIS_TO_SECS);
-			    }
+                            synchronized(particle) {
+                                particle.motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, (curr_time - start_time) * MILLIS_TO_SECS);
+                            }
 			}
 		    });
-	    }
-	}	
+            }
+        }
 	
 	start_x = curr_x;
 	start_y = curr_y;
