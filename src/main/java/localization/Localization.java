@@ -258,6 +258,8 @@ public class Localization implements NodeMain{
 	if(RESAMPLING_COUNT >= RESAMPLING_FREQUENCY){
 	    renormalize();
 	    RESAMPLING_COUNT = 0;
+	    
+	    //insert renormalizing code
 	}
     }
 

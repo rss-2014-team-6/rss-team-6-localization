@@ -9,10 +9,6 @@ import org.apache.commons.math3.distribution.NormalDistribution; // will we have
 
 import map.PolygonMap;
 
-/*
- * @author - bhomberg
- */
-
 public class MapParticle {
 
     // TODO: bumpSensorUpdate, fiducialSensorUpdate
@@ -32,6 +28,9 @@ public class MapParticle {
     private final double X_VARIANCE = .001;
     private final double Y_VARIANCE = .001;
     private final double THETA_VARIANCE = .003;
+
+    private final double PROBABILITY_OF_BUMP_IF_IN_POSITION = .9;
+    private final double PROBABILITY_OF_BUMP_IF_NOT_IN_POSITION = .02;
 
     // constructor
     // takes in starting map file and total number of particles
@@ -56,7 +55,20 @@ public class MapParticle {
     // performs a sensor update for this particle for bump sensors
     // bumpLoc is offset from local coordinates of robot
     // returns nothing, but particle weight changes
-    public synchronized void bumpSensorUpdate(Point2D.Double bumpLoc){
+    public synchronized void bumpSensorUpdate(int bumpID){
+	//reasoning behind bump update:
+	// most of the time, we don't expect to get a bump sensor reading
+	// there's a fairly high variability when exactly we get a bump update based on angle/etc
+	// we only perform bump updates if we're actually bumping something
+	// Localization passes in a location where there's a bump
+	
+	if(map.withinBumpThreshold(x, y, theta, bumpID)){
+	    weight += -1 * Math.log(PROBABILITY_OF_BUMP_IF_IN_POSITION);
+	}
+	else{
+	    weight += -1 * Math.log(PROBABILITY_OF_BUMP_IF_NOT_IN_POSITION);
+	}
+	
     }
 
     // performs a sensor update for this particle for sonars
@@ -67,7 +79,8 @@ public class MapParticle {
 	double[] predicted = map.predictSonars(x, y, theta);
 	double logprob = 0;
 	for(int i=0; i<predicted.length; i++){
-	    logprob += likelihood(sonarMeasurements[i], predicted[i], SONAR_VARIANCE);
+	    if(predicted[i] != -1)
+		logprob += likelihood(sonarMeasurements[i], predicted[i], SONAR_VARIANCE);
 	}
 	weight = weight + logprob;
     }
