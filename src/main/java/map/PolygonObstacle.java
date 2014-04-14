@@ -103,6 +103,13 @@ public class PolygonObstacle implements java.io.Serializable{
     return path.contains(p);
   }
 
+    /**
+     * <p>Return whether this polygon obstace is closed.</p>
+     **/
+    public boolean isClosed() {
+        return closed;
+    }
+
   /**
    * <p>Check whether a rectangle intersects this obstacle polygon.</p>
    *
