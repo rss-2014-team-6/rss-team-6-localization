@@ -64,19 +64,18 @@ public class PolygonMap implements java.io.Serializable{
     public LinkedList<PolygonObstacle> obstacles =
 	new LinkedList<PolygonObstacle>();
 
-    private String mapFile = "/home/rss-staff/ros/rss/solutions/lab6/src/global-nav-maze-2011-basic.map";
+    private Point2D.Double[] sonarPositions = {new Point2D.Double(10, 10),
+					       new Point2D.Double(10, -10),
+					       new Point2D.Double(-10, -10),
+					       new Point2D.Double(-10, 10)};
 
+    private Point2D.Double[] bumpPositions = {new Point2D.Double(10, 10),
+					      new Point2D.Double(10, -10)};
 
+    private final double BUMP_THRESHOLD = .1;
+    private final double SONAR_MAX_DIST = 2; //pulled out of a hat!!
+    private final double SONAR_MIN_DIST = .02; //pulled out of a hat!!
     
-    /*    public PolygonMap(PolygonMap startMap){
-	this.robotStart = startMap.robotStart.clone();
-	this.robotGoal = startMap.robotGoal.clone();
-	this.worldRect = startMap.worldRect.clone();
-	this.obstacles =
-
-	rather than deal with copying all the things, I think it'll be easier to just reparse?
-	}*/
-        
     /**
      * <p>Create a new map, parsing <code>mapFile</code>.</p>
      *
@@ -108,14 +107,110 @@ public class PolygonMap implements java.io.Serializable{
     // takes in the robot position
     // returns an array of sonar values
     public double[] predictSonars(double x, double y, double theta){
-	double[] rtrn = new double[4];
-
+	double[] rtrn = new double[sonarPositions.length];
+	
+	for(int i=0; i<sonarPositions.length; i++){
+	    // predict a value past the end of the board
+	    Point2D.Double sonar_start = localToGlobal(x, y, theta, sonarPositions[i]);
+	    //ehhh we should probably make the line below slightly less hacky
+	    Point2D.Double sonar_end = localToGlobal(x, y, theta, 
+						     new Point2D.Double(sonarPositions[i].getX()*100,
+									sonarPositions[i].getY()*100));
+	    
+	    // iterate through obstacles
+	    for(PolygonObstacle o : obstacles){
+		// iterate through lines on obstacles
+		List<Point2D.Double> vertices = o.getVertices();
+		for(int j=0; j<vertices.size(); j++){
+		    Point2D.Double obs_start = vertices.get(j);
+		    Point2D.Double obs_end = vertices.get( (j+1) % vertices.size() );
+		    // check for intersection
+		    Point2D.Double intersection = getIntersection(sonar_start, sonar_end, obs_start, obs_end);
+		    // if intersection, set the point to the intersection point
+		    if(intersection != null)
+			sonar_end = intersection;
+		}
+	    }
+	    
+	    // if distance > max distance or < min distance, ignore
+	    if(dist(sonar_end, sonar_start) < SONAR_MAX_DIST && dist(sonar_end, sonar_start) > SONAR_MIN_DIST)
+		rtrn[i] = dist(sonar_end, sonar_start);
+	    else
+		rtrn[i] = -1;
+	}
 	return rtrn;
-	// TODO: fill in predictSonars
+    }
+    
+    public Point2D.Double getIntersection(Point2D.Double a, Point2D.Double b, Point2D.Double x, Point2D.Double y){
+	//for the moment, ignore vertical lines -- will throw divide by 0 error!
+
+	double m1 = (b.getY() - a.getY()) / (b.getX() - a.getX());
+	double c1 = a.getY() - m1 * a.getX();
+	
+	double m2 = (y.getY() - x.getY()) / (y.getX() - x.getX());
+	double c2 = x.getY() - m2 * x.getX();
+
+	double xval = (c2 - c1) / (m1 - m2);
+	double yval = m1*xval + c1;
+
+	// check if intersection point is outisde of the bounds of the two segments
+	if((xval > a.getX() && xval > b.getX()) || (xval < a.getX() && xval < b.getX()))
+	    return null;
+	if((xval > x.getX() && xval > y.getX()) || (xval < x.getX() && xval < y.getX()))
+	    return null;
+	if((yval > a.getY() && yval > b.getY()) || (yval < a.getY() && yval < b.getY()))
+	    return null;
+	if((yval > x.getY() && yval > y.getY()) || (yval < x.getY() && yval < y.getY()))
+	    return null;
+
+	return new Point2D.Double(xval, yval);
+    }
+
+    public double dist(Point2D.Double a, Point2D.Double b){
+	return Math.sqrt(Math.pow(a.getX() - b.getX(), 2) + Math.pow(a.getY() - b.getY(), 2));
+    }
+    
+    public double distToLine(Point2D.Double loc, Point2D.Double s, Point2D.Double e){
+	return 0;
     }
 
 
+    public boolean withinBumpThreshold(double x, double y, double theta, int bumpID){
+	Point2D.Double loc = bumpPositions[bumpID];
+	loc = localToGlobal(x, y, theta, loc); 
 
+	//want to check if there's an obstacle around loc w/in the threshold
+
+	// iterate through obstacles
+	for(PolygonObstacle o : obstacles){
+	    // iterate through lines on obstacles
+	    List<Point2D.Double> vertices = o.getVertices();
+	    for(int j=0; j<vertices.size(); j++){
+		Point2D.Double obs_start = vertices.get(j);
+		Point2D.Double obs_end = vertices.get( (j+1) % vertices.size() );
+		
+		double dist = distToLine(loc, obs_start, obs_end);
+		if(dist <= BUMP_THRESHOLD){
+		    return true;
+		}
+	    }
+	}
+	
+	// none of the edges were close enough
+	return false;
+    }
+
+    public Point2D.Double predictFiducial(double x, double y, double theta){
+	//TODO: fill in
+	return new Point2D.Double(0,0);
+    }
+
+    private Point2D.Double localToGlobal(double x, double y, double theta, Point2D.Double loc){
+	//TODO: someone should remove this comment once they've checked my trig --bhomberg
+	double xpos = x + loc.getX() * Math.cos(theta) - loc.getY() * Math.sin(theta);
+	double ypos = y + loc.getX() * Math.sin(theta) + loc.getY() * Math.cos(theta);
+	return new Point2D.Double(xpos, ypos);
+    }
 
 
     /**
