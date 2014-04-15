@@ -50,7 +50,7 @@ public class Localization implements NodeMain{
 
     protected final ArrayList<MapParticle> mapParticleList = new ArrayList<MapParticle>();
 
-    protected final int MAX_PARTICLES = 200;
+    protected final int MAX_PARTICLES = 20;
 
     protected boolean RESAMPLING = false;
     protected int RESAMPLING_FREQUENCY = 1000; // we should calibrate this -- my guess is we want to resample
@@ -190,9 +190,21 @@ public class Localization implements NodeMain{
     public synchronized void sonarSensorUpdate(SonarMsg msg) {
 	motionUpdate();
 
-	/*for(MapParticle p : mapParticleList){
-	    p.sonarSensorUpdate(msg.getSonarValues());
-	    }*/
+	final double[] vals = msg.getSonarValues();
+
+	if(initialized) {
+	    for(int i=0; i<mapParticleList.size(); i++){
+                final MapParticle particle = mapParticleList.get(i);
+		threadpool.execute(
+                    new Runnable() {
+			@Override public void run() {
+                            synchronized(particle) {
+                                particle.sonarSensorUpdate(vals);
+                            }
+			}
+		    });
+            }
+        }
 
 	resample();
 	publishMap();
