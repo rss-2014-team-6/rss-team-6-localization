@@ -206,7 +206,6 @@ public class PolygonMap implements java.io.Serializable{
     }
 
     private Point2D.Double localToGlobal(double x, double y, double theta, Point2D.Double loc){
-	//TODO: someone should remove this comment once they've checked my trig --bhomberg
 	double xpos = x + loc.getX() * Math.cos(theta) - loc.getY() * Math.sin(theta);
 	double ypos = y + loc.getX() * Math.sin(theta) + loc.getY() * Math.cos(theta);
 	return new Point2D.Double(xpos, ypos);

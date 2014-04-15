@@ -215,7 +215,7 @@ public class Localization implements NodeMain{
                     new Runnable() {
 			@Override public void run() {
                             synchronized(particle) {
-                                particle.motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, (curr_time - start_time) * MILLIS_TO_SECS);
+                                particle.motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, (curr_time - start_time) * MILLIS_TO_SECS, start_theta);
                             }
 			}
 		    });

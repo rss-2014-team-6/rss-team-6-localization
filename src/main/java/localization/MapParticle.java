@@ -43,8 +43,8 @@ public class MapParticle {
 	    System.out.println("Error reading in map file!");
 	}
 	this.rand = new Random();
-	this.x = rand.nextDouble() * map.worldRect.getWidth();
-	this.y = rand.nextDouble() * map.worldRect.getHeight();
+	this.x = rand.nextDouble() * map.worldRect.getWidth() + map.worldRect.getX();
+	this.y = rand.nextDouble() * map.worldRect.getHeight() + map.worldRect.getY();
 	this.theta = rand.nextDouble() * Math.PI * 2;
 	// all particles start off with the same weight
 	this.weight = -1 * Math.log( 1.0 / numParticles);
@@ -87,11 +87,17 @@ public class MapParticle {
 
     // performs a motion update for this particle
     // takes in delta values from odometry message
+    // as well as a reference theta to offset the
+    // deltas to match internal theta estimate
     // returns nothing, but particle position changes
-    public synchronized void motionUpdate(double deltaX, double deltaY, double deltaTheta, double deltaTime){
-	double dist = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
-	x += sample(deltaX, X_VARIANCE*dist);
-	y += sample(deltaY, Y_VARIANCE*dist);
+    public synchronized void motionUpdate(double deltaX, double deltaY, double deltaTheta, double deltaTime, double odoRefTheta) {
+	// Rotate deltaX and deltaY by (theta - odoRefTheta)
+	double rotTheta = theta - odoRefTheta;
+	double realDeltaX = deltaX*Math.cos(rotTheta) - deltaY*Math.sin(rotTheta);
+	double realDeltaY = deltaX*Math.sin(rotTheta) + deltaY*Math.cos(rotTheta);
+	double dist = Math.sqrt(Math.pow(realDeltaX, 2) + Math.pow(realDeltaY, 2));
+	x += sample(realDeltaX, X_VARIANCE*dist);
+	y += sample(realDeltaY, Y_VARIANCE*dist);
 	theta += sample(deltaTheta, THETA_VARIANCE*dist);
     }
 
