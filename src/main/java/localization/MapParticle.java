@@ -43,8 +43,14 @@ public class MapParticle {
 	    System.out.println("Error reading in map file!");
 	}
 	this.rand = new Random();
-	this.x = rand.nextDouble() * map.worldRect.getWidth() + map.worldRect.getX();
-	this.y = rand.nextDouble() * map.worldRect.getHeight() + map.worldRect.getY();
+	double tx = rand.nextDouble() * map.worldRect.getWidth() + map.worldRect.getX();
+	double ty = rand.nextDouble() * map.worldRect.getHeight() + map.worldRect.getY();
+	while(!map.isValid(tx, ty)){
+	    tx = rand.nextDouble() * map.worldRect.getWidth() + map.worldRect.getX();
+	    ty = rand.nextDouble() * map.worldRect.getHeight() + map.worldRect.getY();
+	}
+	this.x = tx;
+	this.y = ty;
 	this.theta = rand.nextDouble() * Math.PI * 2;
 	// all particles start off with the same weight
 	this.weight = -1 * Math.log( 1.0 / numParticles);

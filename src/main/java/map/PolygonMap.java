@@ -60,10 +60,14 @@ public class PolygonMap implements java.io.Serializable{
     // The location and size of the world boundary, read in from the map file
     public Rectangle2D.Double worldRect = new Rectangle2D.Double();
 
+    private double ROBOT_RADIUS = .3;
+
     // The obstacles (does not include the world boundary).</p>
     public LinkedList<PolygonObstacle> obstacles =
 	new LinkedList<PolygonObstacle>();
 
+    
+    
     private Point2D.Double[] sonarPositions = {new Point2D.Double(9, 0),
 					       new Point2D.Double(0, -20),
 					       new Point2D.Double(-32, 0),
@@ -102,6 +106,29 @@ public class PolygonMap implements java.io.Serializable{
     public PolygonMap() {
     }
 
+    public boolean isValid(double x, double y){
+	Point2D.Double pt = new Point2D.Double(x,y);
+	for(PolygonObstacle o : obstacles){
+	    if(isPointInObstacle(pt, o))
+		return false;
+	}
+	if(x < worldRect.getX() + ROBOT_RADIUS || x > worldRect.getWidth() + worldRect.getX() - .3)
+	    return false;
+	if(y < worldRect.getY() + ROBOT_RADIUS || y > worldRect.getHeight() + worldRect.getY() - .3)
+	    return false;
+	return true;
+    }
+
+    private boolean isPointInObstacle(Point2D.Double pt, PolygonObstacle po) {
+        // no one tell Tej about this code
+        double midx = pt.getX();
+        double midy = pt.getY();
+        double delta = 0.01;// 1 cm offset
+        return (po.contains(midx - delta, midy - delta)
+                && po.contains(midx - delta, midy + delta)
+                && po.contains(midx + delta, midy - delta) && po.contains(midx
+                + delta, midy + delta));
+    }
 
     // calculates what the mean sonar values should be given a robot position in the map
     // takes in the robot position
