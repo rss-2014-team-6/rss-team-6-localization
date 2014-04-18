@@ -67,11 +67,15 @@ public class PolygonMap implements java.io.Serializable{
 	new LinkedList<PolygonObstacle>();
 
     
-    
-    private Point2D.Double[] sonarPositions = {new Point2D.Double(9, 0),
-					       new Point2D.Double(0, -20),
-					       new Point2D.Double(-32, 0),
-					       new Point2D.Double(0, 21)};
+    // only starting with two sonars for testing
+    private Point2D.Double[] sonarPositions = {new Point2D.Double(.09, 0),
+					       new Point2D.Double(-.32, 0)}; 
+
+	//switched to meters
+	/*new Point2D.Double(.09, 0),
+					       new Point2D.Double(0, -.20),
+					       new Point2D.Double(-.32, 0),
+					       new Point2D.Double(0, .21)};*/
 
     private Point2D.Double[] bumpPositions = {new Point2D.Double(10, 10),
 					      new Point2D.Double(10, -10)};
