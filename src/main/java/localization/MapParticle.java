@@ -20,21 +20,23 @@ public class MapParticle {
     private double y;
     private double theta; // theta ranges 0 to 2pi
     private Random rand;
+    private int id;
 
     // variance values -- should determine from experimentation
     // numbers are pulled out of a hat for now
-    private final double SONAR_VARIANCE = .05;
+    private final double SONAR_VARIANCE = .2;
     private final double FIDUCIAL_VARIANCE = .2;
     private final double X_VARIANCE = .001;
     private final double Y_VARIANCE = .001;
     private final double THETA_VARIANCE = .003;
+    private final double MOTION_THRESHOLD = .001;
 
     private final double PROBABILITY_OF_BUMP_IF_IN_POSITION = .9;
     private final double PROBABILITY_OF_BUMP_IF_NOT_IN_POSITION = .02;
 
     // constructor
     // takes in starting map file and total number of particles
-    public MapParticle(String startMapFile, int numParticles) {
+    public MapParticle(String startMapFile, int numParticles, int id) {
 	try{
 	    this.map = new PolygonMap(startMapFile);
 	} catch (IOException e){
@@ -54,8 +56,8 @@ public class MapParticle {
 	this.theta = rand.nextDouble() * Math.PI * 2;
 	// all particles start off with the same weight
 	this.weight = -1 * Math.log( 1.0 / numParticles);
- 
-	System.out.println("MAP PARTICLE: x: " + this.x + ", y: " + this.y);
+	this.id = id;
+	System.out.println("MAP PARTICLE " + id + ": x: " + this.x + ", y: " + this.y);
    }
 
     // performs a sensor update for this particle for bump sensors
@@ -83,12 +85,14 @@ public class MapParticle {
     // eventually, here we'll think about adding new obstacles
     public synchronized void sonarSensorUpdate(double[] sonarMeasurements){
 	double[] predicted = map.predictSonars(x, y, theta);
+	System.out.println("Predicted vals: " + predicted[0] + ", " + predicted[1]);
 	double logprob = 0;
 	for(int i=0; i<predicted.length; i++){
 	    if(predicted[i] != -1)
 		logprob += likelihood(sonarMeasurements[i], predicted[i], SONAR_VARIANCE);
 	}
 	weight = weight + logprob;
+	System.out.println("\t Particle " + id + "weight: " + weight);
     }
 
     // performs a motion update for this particle
@@ -98,13 +102,15 @@ public class MapParticle {
     // returns nothing, but particle position changes
     public synchronized void motionUpdate(double deltaX, double deltaY, double deltaTheta, double deltaTime, double odoRefTheta) {
 	// Rotate deltaX and deltaY by (theta - odoRefTheta)
-	double rotTheta = theta - odoRefTheta;
-	double realDeltaX = deltaX*Math.cos(rotTheta) - deltaY*Math.sin(rotTheta);
-	double realDeltaY = deltaX*Math.sin(rotTheta) + deltaY*Math.cos(rotTheta);
-	double dist = Math.sqrt(Math.pow(realDeltaX, 2) + Math.pow(realDeltaY, 2));
-	x += sample(realDeltaX, X_VARIANCE*dist);
-	y += sample(realDeltaY, Y_VARIANCE*dist);
-	theta += sample(deltaTheta, THETA_VARIANCE*dist);
+	if(deltaX > MOTION_THRESHOLD || deltaY > MOTION_THRESHOLD || deltaTheta > MOTION_THRESHOLD){
+	    double rotTheta = theta - odoRefTheta;
+	    double realDeltaX = deltaX*Math.cos(rotTheta) - deltaY*Math.sin(rotTheta);
+	    double realDeltaY = deltaX*Math.sin(rotTheta) + deltaY*Math.cos(rotTheta);
+	    double dist = Math.sqrt(Math.pow(realDeltaX, 2) + Math.pow(realDeltaY, 2));
+	    x += sample(realDeltaX, X_VARIANCE*dist);
+	    y += sample(realDeltaY, Y_VARIANCE*dist);
+	    theta += sample(deltaTheta, THETA_VARIANCE*dist);
+	}
     }
 
     // returns the weight
@@ -135,6 +141,10 @@ public class MapParticle {
     // get the theta coord
     public double getTheta() {
         return theta;
+    }
+
+    public double getID(){
+	return id;
     }
 
     // performs a Gaussian sample

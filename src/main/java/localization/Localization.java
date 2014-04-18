@@ -50,7 +50,7 @@ public class Localization implements NodeMain{
 
     protected final ArrayList<MapParticle> mapParticleList = new ArrayList<MapParticle>();
 
-    protected final int MAX_PARTICLES = 20;
+    protected final int MAX_PARTICLES = 1;
 
     protected boolean RESAMPLING = false;
     protected int RESAMPLING_FREQUENCY = 1000; // we should calibrate this -- my guess is we want to resample
@@ -126,7 +126,7 @@ public class Localization implements NodeMain{
         final String mapFile = paramTree.getString(node.resolveName("/loc/mapFileName"));
 
         for(int i=0; i<MAX_PARTICLES; i++){
-            mapParticleList.add(new MapParticle(mapFile, MAX_PARTICLES));
+            mapParticleList.add(new MapParticle(mapFile, MAX_PARTICLES, i));
         }
     }
 	
@@ -136,16 +136,16 @@ public class Localization implements NodeMain{
         // TODO: sensor update
 	// vaguely -- only send when true?
 
-	motionUpdate();
+	//motionUpdate();
 	
-	System.out.println("bumpSensorUpdate: " + (curr_x - start_x) + ", " + (curr_y - start_y) + ", " + (curr_theta - start_theta) + ", " + (curr_time - start_time) * MILLIS_TO_SECS);
+	//System.out.println("bumpSensorUpdate: " + (curr_x - start_x) + ", " + (curr_y - start_y) + ", " + (curr_theta - start_theta) + ", " + (curr_time - start_time) * MILLIS_TO_SECS);
 	
 
 	//insert actual bump update here
 
 	resample();
 
-	publishMap();
+	//publishMap();
     }
 
     public void publishMap(){
@@ -158,6 +158,7 @@ public class Localization implements NodeMain{
                 bestParticle = particle;
             }
         }
+	System.out.println("Particle ID: " + bestParticle.getID() + ", weight: " + bestParticle.getWeight());
         // Serialize and publish the map
         PolygonMap map = bestParticle.getMap();
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
