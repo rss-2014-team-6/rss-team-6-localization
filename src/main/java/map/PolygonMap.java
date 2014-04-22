@@ -148,7 +148,7 @@ public class PolygonMap implements java.io.Serializable{
 						     new Point2D.Double(sonarPositions[i].getX()*100,
 									sonarPositions[i].getY()*100));
 
-	    System.out.println("\n\nPredict sonars: \nX, y, theta: " + x + ", " + y + ", " + theta + "\nsonar start, end: " + sonar_start + ", " + sonar_end);
+	    //System.out.println("\n\nPredict sonars: \nX, y, theta: " + x + ", " + y + ", " + theta + "\nsonar start, end: " + sonar_start + ", " + sonar_end);
 	    
 	    // iterate through obstacles
 	    for(PolygonObstacle o : obstacles){
@@ -159,7 +159,7 @@ public class PolygonMap implements java.io.Serializable{
 		    Point2D.Double obs_end = vertices.get( (j+1) % vertices.size() );
 		    // check for intersection
 		    Point2D.Double intersection = getIntersection(sonar_start, sonar_end, obs_start, obs_end);
-		    System.out.println("intersection: " + intersection);
+		    //System.out.println("intersection: " + intersection);
 		    // if intersection, set the point to the intersection point
 		    if(intersection != null)
 			if(intersection.getX() != 999 && intersection.getY() != 999)
@@ -194,8 +194,8 @@ public class PolygonMap implements java.io.Serializable{
 		    sonar_end = (Point2D.Double)intersection.clone();
 
 	    
-	    System.out.println("new sonar end: " + sonar_end);
-	    System.out.println("sonar dist: " + dist(sonar_end, sonar_start) + "\n");
+	    //System.out.println("new sonar end: " + sonar_end);
+	    //System.out.println("sonar dist: " + dist(sonar_end, sonar_start) + "\n");
 	    // if distance > max distance or < min distance, ignore
 	    if(dist(sonar_end, sonar_start) < SONAR_MAX_DIST && dist(sonar_end, sonar_start) > SONAR_MIN_DIST)
 		rtrn[i] = dist(sonar_end, sonar_start);
@@ -217,8 +217,8 @@ public class PolygonMap implements java.io.Serializable{
 	double xval = (c2 - c1) / (m1 - m2);
 	double yval = m1*xval + c1;
 
-	System.out.println("getIntersection: " + a + "\n" + b + "\n" + x + "\n" + y);
-	System.out.println("xval, yval: " + xval + " " + yval);
+	//System.out.println("getIntersection: " + a + "\n" + b + "\n" + x + "\n" + y);
+	//System.out.println("xval, yval: " + xval + " " + yval);
 
 	// check if intersection point is outisde of the bounds of the two segments
 	if((xval > a.getX() && xval > b.getX()) || (xval < a.getX() && xval < b.getX()))

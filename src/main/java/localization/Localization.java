@@ -50,7 +50,7 @@ public class Localization implements NodeMain{
 
     protected final ArrayList<MapParticle> mapParticleList = new ArrayList<MapParticle>();
 
-    protected final int MAX_PARTICLES = 1;
+    protected final int MAX_PARTICLES = 100;
 
     protected boolean RESAMPLING = false;
     protected int RESAMPLING_FREQUENCY = 1000; // we should calibrate this -- my guess is we want to resample
@@ -158,8 +158,9 @@ public class Localization implements NodeMain{
                 bestParticle = particle;
             }
         }
-	System.out.println("Particle ID: " + bestParticle.getID() + ", weight: " + bestParticle.getWeight());
-        // Serialize and publish the map
+	System.out.println("Particle ID: " + bestParticle.getID() + ", weight: " + bestParticle.getWeight()
+			   + "\n pos: " + bestParticle.getPosition());
+	// Serialize and publish the map
         PolygonMap map = bestParticle.getMap();
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
         try {

@@ -163,9 +163,6 @@ public class PolygonObstacle implements java.io.Serializable{
     return vertices;
   }
 
-    public boolean isClosed(){
-	return closed;
-    }
 
   /**
    * <p>Covers {@link #toStringBuffer}, internally conses a StringBuffer.</p>

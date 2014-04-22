@@ -33,6 +33,11 @@ public class MapParticle {
 
     private final double PROBABILITY_OF_BUMP_IF_IN_POSITION = .9;
     private final double PROBABILITY_OF_BUMP_IF_NOT_IN_POSITION = .02;
+    private final double PROBABILITY_OF_FALSE_SONAR = .2; //pulled out of a hat!
+
+    private final double SONAR_MAX_DIST = 1.2; //check for real value
+    private final double SONAR_MIN_DIST = .02;
+
 
     // constructor
     // takes in starting map file and total number of particles
@@ -85,14 +90,18 @@ public class MapParticle {
     // eventually, here we'll think about adding new obstacles
     public synchronized void sonarSensorUpdate(double[] sonarMeasurements){
 	double[] predicted = map.predictSonars(x, y, theta);
-	System.out.println("Predicted vals: " + predicted[0] + ", " + predicted[1]);
+	//System.out.println("Predicted vals: " + predicted[0] + ", " + predicted[1]);
 	double logprob = 0;
 	for(int i=0; i<predicted.length; i++){
-	    if(predicted[i] != -1)
-		logprob += likelihood(sonarMeasurements[i], predicted[i], SONAR_VARIANCE);
+	    if(sonarMeasurements[i] > SONAR_MIN_DIST && sonarMeasurements[i] < SONAR_MAX_DIST){
+		if(predicted[i] != -1)
+		    logprob += likelihood(sonarMeasurements[i], predicted[i], SONAR_VARIANCE);
+		else
+		    logprob += -1 * Math.log(PROBABILITY_OF_FALSE_SONAR);
+	    }
 	}
 	weight = weight + logprob;
-	System.out.println("\t Particle " + id + "weight: " + weight);
+	//System.out.println("\t Particle " + id + "weight: " + weight);
     }
 
     // performs a motion update for this particle
@@ -141,6 +150,10 @@ public class MapParticle {
     // get the theta coord
     public double getTheta() {
         return theta;
+    }
+
+    public Point2D.Double getPosition(){
+	return new Point2D.Double(x, y);
     }
 
     public double getID(){
