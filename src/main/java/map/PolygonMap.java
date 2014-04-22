@@ -166,6 +166,33 @@ public class PolygonMap implements java.io.Serializable{
 			    sonar_end = (Point2D.Double)intersection.clone();
 		}
 	    }
+
+	    // check walls
+	    Point2D.Double intersection = getIntersection(sonar_start, sonar_end, 
+							  new Point2D.Double(worldRect.getX(), worldRect.getY()),
+							  new Point2D.Double(worldRect.getX() + worldRect.getWidth(), worldRect.getY()));
+	    if(intersection != null)
+		if(intersection.getX() != 999 && intersection.getY() != 999)
+		    sonar_end = (Point2D.Double)intersection.clone();
+	    intersection = getIntersection(sonar_start, sonar_end, 
+					   new Point2D.Double(worldRect.getX() + worldRect.getWidth(), worldRect.getY() + worldRect.getHeight()),
+					   new Point2D.Double(worldRect.getX() + worldRect.getWidth(), worldRect.getY()));
+	    if(intersection != null)
+		if(intersection.getX() != 999 && intersection.getY() != 999)
+		    sonar_end = (Point2D.Double)intersection.clone();
+	    intersection = getIntersection(sonar_start, sonar_end, 
+					   new Point2D.Double(worldRect.getX() + worldRect.getWidth(), worldRect.getY() + worldRect.getHeight()),
+					   new Point2D.Double(worldRect.getX(), worldRect.getY() + worldRect.getHeight()));
+	    if(intersection != null)
+		if(intersection.getX() != 999 && intersection.getY() != 999)
+		    sonar_end = (Point2D.Double)intersection.clone();
+	    intersection = getIntersection(sonar_start, sonar_end, 
+					   new Point2D.Double(worldRect.getX(), worldRect.getY() + worldRect.getHeight()),
+					   new Point2D.Double(worldRect.getX(), worldRect.getY()));
+	    if(intersection != null)
+		if(intersection.getX() != 999 && intersection.getY() != 999)
+		    sonar_end = (Point2D.Double)intersection.clone();
+
 	    
 	    System.out.println("new sonar end: " + sonar_end);
 	    System.out.println("sonar dist: " + dist(sonar_end, sonar_start) + "\n");
