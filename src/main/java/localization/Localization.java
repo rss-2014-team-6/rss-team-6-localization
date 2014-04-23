@@ -3,13 +3,14 @@ package localization;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
-import java.util.ArrayList;
 
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.buffer.ChannelBuffer;
 import java.nio.ByteOrder;
 
 import map.PolygonMap;
+import gui_msgs.GUIParticleCloudMsg;
+import gui_msgs.PointDataMsg;
 import rss_msgs.BumpMsg;
 import rss_msgs.OdometryMsg;
 import rss_msgs.SonarMsg;
@@ -27,6 +28,8 @@ import org.ros.message.MessageListener;
 
 import java.lang.Runtime;
 import java.lang.Thread;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 
@@ -47,6 +50,8 @@ public class Localization implements NodeMain{
     // Publishers
     protected Publisher<MapMsg> mapPub;
     protected Publisher<PositionMsg> posPub;
+    protected Publisher<GUIParticleCloudMsg> guiCloudPub;
+    protected Publisher<PointDataMsg> guiPointDataPub;
 
     protected final ArrayList<MapParticle> mapParticleList = new ArrayList<MapParticle>();
 
@@ -76,6 +81,9 @@ public class Localization implements NodeMain{
 	// Publishers
         mapPub = node.newPublisher("/loc/Map", "rss_msgs/MapMsg");
         posPub = node.newPublisher("/loc/Position", "rss_msgs/PositionMsg");
+        guiCloudPub = node.newPublisher("/gui/ParticleCloud", "gui_msgs/ParticleCloudMsg");
+        // Dummy publisher so we can create new messages of this type (yayyy rosjava)
+        guiPointDataPub = node.newPublisher("/dummy/PointData", "gui_msgs/PointDataMsg");
 
 
 	// Subscribers
@@ -148,7 +156,24 @@ public class Localization implements NodeMain{
 	//publishMap();
     }
 
-    public void publishMap(){
+    private void drawParticleCloud() {
+        double[] weights = new double[mapParticleList.size()];
+        List<PointDataMsg> points = new ArrayList<PointDataMsg>();
+        for (int i = 0; i < mapParticleList.size(); i++) {
+            MapParticle particle = mapParticleList.get(i);
+            PointDataMsg pointData = guiPointDataPub.newMessage();
+            pointData.setX(particle.getX());
+            pointData.setY(particle.getY());
+            points.add(pointData);
+            weights[i] = particle.getWeight();
+        }
+        GUIParticleCloudMsg cloudMsg = guiCloudPub.newMessage();
+        cloudMsg.setPoints(points);
+        cloudMsg.setWeights(weights);
+        guiCloudPub.publish(cloudMsg);
+    }
+
+    private void publishMap(){
 	// Best weight is the minimum, since we're using negative log
         double minWeight = Double.POSITIVE_INFINITY;
         MapParticle bestParticle = null;
@@ -210,6 +235,7 @@ public class Localization implements NodeMain{
 
 	resample();
 	publishMap();
+        drawParticleCloud();
     }
 
     // performs sensor updates based on fiducial observation
