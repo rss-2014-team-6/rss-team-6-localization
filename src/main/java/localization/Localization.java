@@ -17,6 +17,7 @@ import rss_msgs.SonarMsg;
 import rss_msgs.MapMsg;
 import rss_msgs.PositionMsg;
 import rss_msgs.FiducialMsg;
+import rss_msgs.InitializedMsg;
 import org.ros.namespace.GraphName;
 import org.ros.node.Node;
 import org.ros.node.ConnectedNode;
@@ -46,6 +47,7 @@ public class Localization implements NodeMain{
     protected Subscriber<OdometryMsg> odoSub;
     protected Subscriber<SonarMsg> sonSub;
     protected Subscriber<FiducialMsg> fidSub;
+    protected Subscriber<InitializedMsg> initSub;
 
     // Publishers
     protected Publisher<MapMsg> mapPub;
@@ -71,7 +73,8 @@ public class Localization implements NodeMain{
     protected double curr_theta;
     protected long curr_time;
 
-    protected boolean initialized;
+    protected boolean motion_initialized;
+    protected boolean state_initialized;
 
     ExecutorService threadpool;
 
@@ -91,7 +94,8 @@ public class Localization implements NodeMain{
         bumpSub.addMessageListener(new MessageListener<BumpMsg>() {
             @Override
             public void onNewMessage(BumpMsg msg) {
-                bumpSensorUpdate(msg);
+                if(state_initialized)
+		    bumpSensorUpdate(msg);
             }
         });
 
@@ -100,7 +104,8 @@ public class Localization implements NodeMain{
 	sonSub.addMessageListener(new MessageListener<SonarMsg>() {
             @Override
             public void onNewMessage(SonarMsg msg) {
-                sonarSensorUpdate(msg);
+                if(state_initialized)
+		    sonarSensorUpdate(msg);
             }
         });
 
@@ -109,7 +114,8 @@ public class Localization implements NodeMain{
 	fidSub.addMessageListener(new MessageListener<FiducialMsg>() {
             @Override
             public void onNewMessage(FiducialMsg msg) {
-                fiducialSensorUpdate(msg);
+                if(state_initialized)
+		    fiducialSensorUpdate(msg);
             }
         });
 
@@ -118,12 +124,21 @@ public class Localization implements NodeMain{
 	odoSub.addMessageListener(new MessageListener<OdometryMsg>() {
             @Override
             public void onNewMessage(OdometryMsg msg) {
-                currPosition(msg);
+                if(state_initialized)
+		    currPosition(msg);
+            }
+        });
+
+	initSub = node.newSubscriber("/state/Initialized", "rss_msgs/InitializedMsg");
+	initSub.addMessageListener(new MessageListener<OdometryMsg>() {
+            @Override
+            public void onNewMessage(InitializedMsg msg) {
+                state_initialized = msg.getInitialized();
             }
         });
 
 	//have not initialized motion yet
-	initialized = false;
+	motion_initialized = false;
 
 	//initialize threadpool
 	threadpool = Executors.newCachedThreadPool();
@@ -141,18 +156,16 @@ public class Localization implements NodeMain{
     // performs sensor updates based on bump sensor values for all particles
     // updates the particle list, doesn't return anything
     public synchronized void bumpSensorUpdate(BumpMsg msg) {
-        // TODO: sensor update
-	// vaguely -- only send when true?
-
+	    
 	//motionUpdate();
 	
 	//System.out.println("bumpSensorUpdate: " + (curr_x - start_x) + ", " + (curr_y - start_y) + ", " + (curr_theta - start_theta) + ", " + (curr_time - start_time) * MILLIS_TO_SECS);
 	
-
+	
 	//insert actual bump update here
-
+	
 	resample();
-
+	
 	//publishMap();
     }
 
@@ -219,7 +232,7 @@ public class Localization implements NodeMain{
 
 	final double[] vals = msg.getSonarValues();
 
-	if(initialized) {
+	if(motion_initialized) {
 	    for(int i=0; i<mapParticleList.size(); i++){
                 final MapParticle particle = mapParticleList.get(i);
 		threadpool.execute(
@@ -248,7 +261,7 @@ public class Localization implements NodeMain{
     // performs motion updates based on odometry for all particles
     // updates the particle list, doesn't return anything
     public synchronized void motionUpdate() {
-	if(initialized) {
+	if(motion_initialized) {
 	    for(int i=0; i<mapParticleList.size(); i++){
                 final MapParticle particle = mapParticleList.get(i);
 		threadpool.execute(
@@ -274,12 +287,12 @@ public class Localization implements NodeMain{
 	curr_theta = msg.getTheta();
 	curr_time = (long) msg.getTime(); // seems to build fine on the eeepc but complains on my comp without this
 
-	if(!initialized){
+	if(!motion_initialized){
 	    start_x = msg.getX();
 	    start_y = msg.getY();
 	    start_theta = msg.getTheta();
 	    start_time = (long) msg.getTime();
-	    initialized = true;
+	    motion_initialized = true;
 	}
     }    
     
