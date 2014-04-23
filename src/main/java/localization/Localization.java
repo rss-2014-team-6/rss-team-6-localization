@@ -63,7 +63,7 @@ public class Localization implements NodeMain{
     protected final int MAX_PARTICLES = 1000;
 
     protected boolean RESAMPLING = false;
-    protected int RESAMPLING_FREQUENCY = 1000; // we should calibrate this -- my guess is we want to resample
+    protected int RESAMPLING_FREQUENCY = 20; // we should calibrate this -- my guess is we want to resample
                                                // about once a minute
     protected int RESAMPLING_COUNT = 0;
 
