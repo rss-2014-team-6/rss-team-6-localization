@@ -84,7 +84,7 @@ public class Localization implements NodeMain{
 	// Publishers
         mapPub = node.newPublisher("/loc/Map", "rss_msgs/MapMsg");
         posPub = node.newPublisher("/loc/Position", "rss_msgs/PositionMsg");
-        guiCloudPub = node.newPublisher("/gui/ParticleCloud", "gui_msgs/ParticleCloudMsg");
+        guiCloudPub = node.newPublisher("/gui/ParticleCloud", "gui_msgs/GUIParticleCloudMsg");
         // Dummy publisher so we can create new messages of this type (yayyy rosjava)
         guiPointDataPub = node.newPublisher("/dummy/PointData", "gui_msgs/PointDataMsg");
 
