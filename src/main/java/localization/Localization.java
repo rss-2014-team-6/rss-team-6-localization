@@ -79,8 +79,6 @@ public class Localization implements NodeMain{
     protected boolean motion_initialized = false;
     protected boolean state_initialized = false;
 
-    protected boolean renormalizingLock = false;
-
     private Random rand;
 
     private AtomicInteger counter = new AtomicInteger(0);
@@ -236,35 +234,33 @@ public class Localization implements NodeMain{
     // performs sensor updates based on sonar values for all particles
     // updates the particle list, doesn't return anything
     public synchronized void sonarSensorUpdate(SonarMsg msg) {
-	if(!renormalizingLock){
-	    counter.incrementAndGet(); // add one before doing updates as a chunk
+        counter.incrementAndGet(); // add one before doing updates as a chunk
 
-	    motionUpdate();
+        motionUpdate();
 
-	    final double[] vals = msg.getSonarValues();
+        final double[] vals = msg.getSonarValues();
 
-	    if(motion_initialized) {
-		for(int i=0; i<mapParticleList.size(); i++){
-		    counter.incrementAndGet();
-		    final MapParticle particle = mapParticleList.get(i);
-		    threadpool.execute(
-				       new Runnable() {
-					   @Override public void run() {
-					       synchronized(particle) {
-						   particle.sonarSensorUpdate(vals);
-						   counter.decrementAndGet();
-					       }
-					   }
-				       });
-		}
-	    }
+        if(motion_initialized) {
+            for(int i=0; i<mapParticleList.size(); i++){
+                counter.incrementAndGet();
+                final MapParticle particle = mapParticleList.get(i);
+                threadpool.execute(
+                    new Runnable() {
+                        @Override public void run() {
+                            synchronized(particle) {
+                                particle.sonarSensorUpdate(vals);
+                                counter.decrementAndGet();
+                            }
+                        }
+                    });
+            }
+        }
 
-	    counter.decrementAndGet(); // decrement after finishing all updates
+        counter.decrementAndGet(); // decrement after finishing all updates
 
-	    resample();
-	    publishMap();
-	    drawParticleCloud();
-	}
+        resample();
+        publishMap();
+        drawParticleCloud();
     }
 
     // performs sensor updates based on fiducial observation
@@ -317,7 +313,7 @@ public class Localization implements NodeMain{
     // renormalize particles
     // this induces error -- since we need to represent weights as actual probabilities -- so
     // we avoid calling this unless we need them to resample
-    public synchronized void renormalize(){
+    private synchronized void renormalize(){
 	double sum = 0;
 
 	while(counter.get() > 0);
@@ -327,17 +323,16 @@ public class Localization implements NodeMain{
 
 	for(int i=0; i<mapParticleList.size(); i++){
 	    double w = mapParticleList.get(i).getWeight();
-	    mapParticleList.get(i).setWeight(-1 * Math.log( Math.exp(-1*w) / sum ));
+	    mapParticleList.get(i).setWeight(w + Math.log(sum));
 	}
     }
 
     // resample particles
-    public synchronized void resample(){
+    private synchronized void resample(){
 	if(RESAMPLING)
 	    RESAMPLING_COUNT++;
 
 	if(RESAMPLING_COUNT >= RESAMPLING_FREQUENCY){
-	    renormalizingLock = true;
 	    renormalize();
 	    RESAMPLING_COUNT = 0;
 
@@ -346,15 +341,21 @@ public class Localization implements NodeMain{
 	    for(int i=0; i<MAX_PARTICLES; i++){
 		double val = rand.nextDouble();
 		double temp=0;
-		int j=0;
+                int j;
+                // Cycle through particles until we pass the randomly selected
+                // val -- more probability of landing on higher weight particles.
 		for(j=0; j<mapParticleList.size(); j++){
 		    if(temp > val)
 			break;
 		    else
 			temp += Math.exp(-1*mapParticleList.get(j).getWeight());
 		}
+                // Duplicate the chosen particle at i.
 		newParticleList.add(new MapParticle(mapParticleList.get(j), MAX_PARTICLES, i));
 	    }
+
+            // Replace the old map particle list
+            mapParticleList = newParticleList;
 	}
     }
 
