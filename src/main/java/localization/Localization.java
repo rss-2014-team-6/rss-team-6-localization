@@ -130,7 +130,7 @@ public class Localization implements NodeMain{
         });
 
 	initSub = node.newSubscriber("/state/Initialized", "rss_msgs/InitializedMsg");
-	initSub.addMessageListener(new MessageListener<OdometryMsg>() {
+	initSub.addMessageListener(new MessageListener<InitializedMsg>() {
             @Override
             public void onNewMessage(InitializedMsg msg) {
                 state_initialized = msg.getInitialized();
