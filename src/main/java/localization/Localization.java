@@ -73,8 +73,8 @@ public class Localization implements NodeMain{
     protected double curr_theta;
     protected long curr_time;
 
-    protected boolean motion_initialized;
-    protected boolean state_initialized;
+    protected boolean motion_initialized = false;
+    protected boolean state_initialized = false;
 
     ExecutorService threadpool;
 
@@ -136,9 +136,6 @@ public class Localization implements NodeMain{
                 state_initialized = msg.getInitialized();
             }
         });
-
-	//have not initialized motion yet
-	motion_initialized = false;
 
 	//initialize threadpool
 	threadpool = Executors.newCachedThreadPool();
