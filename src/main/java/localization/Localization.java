@@ -31,8 +31,11 @@ import java.lang.Runtime;
 import java.lang.Thread;
 import java.util.ArrayList;
 import java.util.List;
+
+import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Localization implements NodeMain{
 
@@ -55,7 +58,7 @@ public class Localization implements NodeMain{
     protected Publisher<GUIParticleCloudMsg> guiCloudPub;
     protected Publisher<PointDataMsg> guiPointDataPub;
 
-    protected final ArrayList<MapParticle> mapParticleList = new ArrayList<MapParticle>();
+    protected ArrayList<MapParticle> mapParticleList = new ArrayList<MapParticle>();
 
     protected final int MAX_PARTICLES = 100;
 
@@ -75,6 +78,12 @@ public class Localization implements NodeMain{
 
     protected boolean motion_initialized = false;
     protected boolean state_initialized = false;
+
+    protected boolean renormalizingLock = false;
+
+    private Random rand;
+
+    private AtomicInteger counter = new AtomicInteger(0);
 
     ExecutorService threadpool;
 
@@ -136,6 +145,8 @@ public class Localization implements NodeMain{
                 state_initialized = msg.getInitialized();
             }
         });
+
+	rand = new Random();
 
 	//initialize threadpool
 	threadpool = Executors.newCachedThreadPool();
@@ -225,27 +236,35 @@ public class Localization implements NodeMain{
     // performs sensor updates based on sonar values for all particles
     // updates the particle list, doesn't return anything
     public synchronized void sonarSensorUpdate(SonarMsg msg) {
-	motionUpdate();
+	if(!renormalizingLock){
+	    counter.incrementAndGet(); // add one before doing updates as a chunk
 
-	final double[] vals = msg.getSonarValues();
+	    motionUpdate();
 
-	if(motion_initialized) {
-	    for(int i=0; i<mapParticleList.size(); i++){
-                final MapParticle particle = mapParticleList.get(i);
-		threadpool.execute(
-                    new Runnable() {
-			@Override public void run() {
-                            synchronized(particle) {
-                                particle.sonarSensorUpdate(vals);
-                            }
-			}
-		    });
-            }
-        }
+	    final double[] vals = msg.getSonarValues();
 
-	resample();
-	publishMap();
-        drawParticleCloud();
+	    if(motion_initialized) {
+		for(int i=0; i<mapParticleList.size(); i++){
+		    counter.incrementAndGet();
+		    final MapParticle particle = mapParticleList.get(i);
+		    threadpool.execute(
+				       new Runnable() {
+					   @Override public void run() {
+					       synchronized(particle) {
+						   particle.sonarSensorUpdate(vals);
+						   counter.decrementAndGet();
+					       }
+					   }
+				       });
+		}
+	    }
+
+	    counter.decrementAndGet(); // decrement after finishing all updates
+
+	    resample();
+	    publishMap();
+	    drawParticleCloud();
+	}
     }
 
     // performs sensor updates based on fiducial observation
@@ -260,13 +279,15 @@ public class Localization implements NodeMain{
     public synchronized void motionUpdate() {
 	if(motion_initialized) {
 	    for(int i=0; i<mapParticleList.size(); i++){
+		counter.incrementAndGet();
                 final MapParticle particle = mapParticleList.get(i);
 		threadpool.execute(
                     new Runnable() {
 			@Override public void run() {
                             synchronized(particle) {
                                 particle.motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, (curr_time - start_time) * MILLIS_TO_SECS, start_theta);
-                            }
+				counter.decrementAndGet();
+			    }
 			}
 		    });
             }
@@ -298,16 +319,42 @@ public class Localization implements NodeMain{
     // we avoid calling this unless we need them to resample
     public synchronized void renormalize(){
 	double sum = 0;
+
+	while(counter.get() > 0);
 	
+	for(int i=0; i<mapParticleList.size(); i++)
+	    sum += Math.exp(-1*mapParticleList.get(i).getWeight());
+
+	for(int i=0; i<mapParticleList.size(); i++){
+	    double w = mapParticleList.get(i).getWeight();
+	    mapParticleList.get(i).setWeight(-1 * Math.log( Math.exp(-1*w) / sum ));
+	}
     }
 
     // resample particles
     public synchronized void resample(){
 	if(RESAMPLING)
 	    RESAMPLING_COUNT++;
+
 	if(RESAMPLING_COUNT >= RESAMPLING_FREQUENCY){
+	    renormalizingLock = true;
 	    renormalize();
 	    RESAMPLING_COUNT = 0;
+
+	    ArrayList<MapParticle> newParticleList = new ArrayList<MapParticle>();
+
+	    for(int i=0; i<MAX_PARTICLES; i++){
+		double val = rand.nextDouble();
+		double temp=0;
+		int j=0;
+		for(j=0; j<mapParticleList.size(); j++){
+		    if(temp > val)
+			break;
+		    else
+			temp += Math.exp(-1*mapParticleList.get(j).getWeight());
+		}
+		newParticleList.add(new MapParticle(mapParticleList.get(j), MAX_PARTICLES, i));
+	    }
 	}
     }
 

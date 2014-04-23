@@ -110,6 +110,13 @@ public class PolygonMap implements java.io.Serializable{
     public PolygonMap() {
     }
 
+    public PolygonMap(PolygonMap m){
+	this.robotStart = m.robotStart;
+	this.robotGoal = m.robotGoal;
+	this.worldRect = m.worldRect;
+	this.obstacles = m.obstacles;
+    }
+
     public boolean isValid(double x, double y){
 	Point2D.Double pt = new Point2D.Double(x,y);
 	for(PolygonObstacle o : obstacles){

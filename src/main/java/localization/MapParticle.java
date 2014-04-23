@@ -9,7 +9,7 @@ import org.apache.commons.math3.distribution.NormalDistribution; // will we have
 
 import map.PolygonMap;
 
-public class MapParticle {
+public class MapParticle implements Cloneable{
 
     // TODO: bumpSensorUpdate, fiducialSensorUpdate
     
@@ -64,6 +64,16 @@ public class MapParticle {
 	this.id = id;
 	System.out.println("MAP PARTICLE " + id + ": x: " + this.x + ", y: " + this.y);
    }
+
+    public MapParticle(MapParticle mp, int numParticles, int id){
+	this.weight = -1 * Math.log( 1.0 / numParticles);
+	this.x = mp.getX();
+	this.y = mp.getY();
+	this.theta = mp.getTheta();
+	rand = new Random();
+	this.id = id;
+	this.map = new PolygonMap(mp.getMap());
+    }
 
     // performs a sensor update for this particle for bump sensors
     // bumpLoc is offset from local coordinates of robot
@@ -179,4 +189,6 @@ public class MapParticle {
 	double p = normal.cumulativeProbability(value);
 	return -1 * Math.log(p);
     }
+
+
 }
