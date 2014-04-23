@@ -38,6 +38,8 @@ public class MapParticle implements Cloneable{
     private final double SONAR_MAX_DIST = 1.2; //check for real value
     private final double SONAR_MIN_DIST = .02;
 
+    private final double OUT_OF_BOUND_PENALTY = .001; 
+
 
     // constructor
     // takes in starting map file and total number of particles
@@ -130,6 +132,9 @@ public class MapParticle implements Cloneable{
 	    y += sample(realDeltaY, Y_VARIANCE*dist);
 	    theta += sample(deltaTheta, THETA_VARIANCE*dist);
 	}
+
+	if(!map.isValid(x,y))
+	    weight += -1 * Math.log(OUT_OF_BOUND_PENALTY);
     }
 
     // returns the weight
