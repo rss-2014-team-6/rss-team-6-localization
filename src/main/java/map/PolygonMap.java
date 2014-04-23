@@ -66,6 +66,9 @@ public class PolygonMap implements java.io.Serializable{
     public LinkedList<PolygonObstacle> obstacles =
 	new LinkedList<PolygonObstacle>();
 
+    // The CSpace of the map (should be updated every time obstacles is updated)
+    private CSpace cspace = new CSpace(obstacles, ROBOT_RADIUS);
+
     
     // only starting with two sonars for testing
     private Point2D.Double[] sonarPositions = {new Point2D.Double(.09, 0),
@@ -112,7 +115,8 @@ public class PolygonMap implements java.io.Serializable{
 
     public boolean isValid(double x, double y){
 	Point2D.Double pt = new Point2D.Double(x,y);
-	for(PolygonObstacle o : obstacles){
+        // Check point against cspace obstacles
+	for(PolygonObstacle o : cspace.getObstacles()){
 	    if(isPointInObstacle(pt, o))
 		return false;
 	}
@@ -465,6 +469,8 @@ public class PolygonMap implements java.io.Serializable{
 		    break;
 	    }
 
+            cspace = new CSpace(obstacles, ROBOT_RADIUS);
+
 	} catch (NumberFormatException e) {
 	    throw new ParseException("malformed number on line " + lineNumber,
 				     lineNumber);
@@ -505,6 +511,15 @@ public class PolygonMap implements java.io.Serializable{
      **/
     public List<PolygonObstacle> getObstacles() {
 	return obstacles;
+    }
+
+    /**
+     * <p>Get {@link #cspace}.</p>
+     *
+     * @return a reference to <code>cspace</code>
+     **/
+    public CSpace getCSpace() {
+        return cspace;
     }
 
     /**

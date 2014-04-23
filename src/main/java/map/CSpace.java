@@ -2,6 +2,7 @@ package map;
 
 import java.util.*;
 import java.awt.geom.*;
+import java.io.Serializable;
 
 /**
  * <p>Simple configuration space.</p>
@@ -12,7 +13,7 @@ import java.awt.geom.*;
  *
  * @author vona
  **/
-public class CSpace {
+public class CSpace implements java.io.Serializable{
 
   /**
    * <p>The CS obstacles.</p>

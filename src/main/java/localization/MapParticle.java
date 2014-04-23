@@ -28,7 +28,7 @@ public class MapParticle {
     private final double FIDUCIAL_VARIANCE = .2;
     private final double X_VARIANCE = .001;
     private final double Y_VARIANCE = .001;
-    private final double THETA_VARIANCE = .003;
+    private final double THETA_VARIANCE = .03;
     private final double MOTION_THRESHOLD = .001;
 
     private final double PROBABILITY_OF_BUMP_IF_IN_POSITION = .9;
