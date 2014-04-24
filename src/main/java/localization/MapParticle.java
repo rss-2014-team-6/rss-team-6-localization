@@ -113,7 +113,7 @@ public class MapParticle implements Cloneable{
 	    }
 	}
 	weight = weight + logprob;
-	//System.out.println("\t Particle " + id + "weight: " + weight);
+	System.out.println("\t Particle " + id + ", weight: " + weight + ", delta: " + logprob);
     }
 
     // performs a motion update for this particle

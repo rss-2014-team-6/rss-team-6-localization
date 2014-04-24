@@ -5,8 +5,11 @@ import java.lang.Double;
 import java.lang.Math;
 import java.awt.Color;
 
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.awt.geom.PathIterator;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -154,6 +157,7 @@ public class PolygonMap implements java.io.Serializable{
 	    Point2D.Double sonar_end = localToGlobal(x, y, theta, 
 						     new Point2D.Double(sonarPositions[i].getX()*100,
 									sonarPositions[i].getY()*100));
+            Line2D.Double sonar_line = new Line2D.Double(sonar_start, sonar_end);
 
 	    //System.out.println("\n\nPredict sonars: \nX, y, theta: " + x + ", " + y + ", " + theta + "\nsonar start, end: " + sonar_start + ", " + sonar_end);
 	    
@@ -164,42 +168,34 @@ public class PolygonMap implements java.io.Serializable{
 		for(int j=0; j<vertices.size(); j++){
 		    Point2D.Double obs_start = vertices.get(j);
 		    Point2D.Double obs_end = vertices.get( (j+1) % vertices.size() );
+                    Line2D.Double obs_line = new Line2D.Double(obs_start, obs_end);
 		    // check for intersection
-		    Point2D.Double intersection = getIntersection(sonar_start, sonar_end, obs_start, obs_end);
 		    //System.out.println("intersection: " + intersection);
 		    // if intersection, set the point to the intersection point
-		    if(intersection != null)
-			if(intersection.getX() != 999 && intersection.getY() != 999)
-			    sonar_end = (Point2D.Double)intersection.clone();
+		    if(obs_line.intersectsLine(sonar_line)) {
+                        Point2D.Double intersection = getIntersection(sonar_start, sonar_end, obs_start, obs_end);
+                        sonar_end = intersection;
+                        sonar_line = new Line2D.Double(sonar_start, sonar_end);
+                    }
 		}
 	    }
 
 	    // check walls
-	    Point2D.Double intersection = getIntersection(sonar_start, sonar_end, 
-							  new Point2D.Double(worldRect.getX(), worldRect.getY()),
-							  new Point2D.Double(worldRect.getX() + worldRect.getWidth(), worldRect.getY()));
-	    if(intersection != null)
-		if(intersection.getX() != 999 && intersection.getY() != 999)
-		    sonar_end = (Point2D.Double)intersection.clone();
-	    intersection = getIntersection(sonar_start, sonar_end, 
-					   new Point2D.Double(worldRect.getX() + worldRect.getWidth(), worldRect.getY() + worldRect.getHeight()),
-					   new Point2D.Double(worldRect.getX() + worldRect.getWidth(), worldRect.getY()));
-	    if(intersection != null)
-		if(intersection.getX() != 999 && intersection.getY() != 999)
-		    sonar_end = (Point2D.Double)intersection.clone();
-	    intersection = getIntersection(sonar_start, sonar_end, 
-					   new Point2D.Double(worldRect.getX() + worldRect.getWidth(), worldRect.getY() + worldRect.getHeight()),
-					   new Point2D.Double(worldRect.getX(), worldRect.getY() + worldRect.getHeight()));
-	    if(intersection != null)
-		if(intersection.getX() != 999 && intersection.getY() != 999)
-		    sonar_end = (Point2D.Double)intersection.clone();
-	    intersection = getIntersection(sonar_start, sonar_end, 
-					   new Point2D.Double(worldRect.getX(), worldRect.getY() + worldRect.getHeight()),
-					   new Point2D.Double(worldRect.getX(), worldRect.getY()));
-	    if(intersection != null)
-		if(intersection.getX() != 999 && intersection.getY() != 999)
-		    sonar_end = (Point2D.Double)intersection.clone();
-
+            PathIterator it = worldRect.getPathIterator(new AffineTransform());
+            float[] coords = new float[6];
+            while (!it.isDone()) {
+                int type = it.currentSegment(coords);
+                if (type == PathIterator.SEG_LINETO) {
+                    Point2D.Double wall_start = new Point2D.Double(coords[0], coords[1]);
+                    Point2D.Double wall_end = new Point2D.Double(coords[2], coords[3]);
+                    Line2D.Double wall_line = new Line2D.Double(wall_start, wall_end);
+                    if (wall_line.intersectsLine(sonar_line)) {
+                        Point2D.Double intersection = getIntersection(sonar_start, sonar_end, wall_start, wall_end);
+                        sonar_end = intersection;
+                        sonar_line = new Line2D.Double(sonar_start, sonar_end);
+                    }
+                }
+            }
 	    
 	    //System.out.println("new sonar end: " + sonar_end);
 	    //System.out.println("sonar dist: " + dist(sonar_end, sonar_start) + "\n");
@@ -212,34 +208,22 @@ public class PolygonMap implements java.io.Serializable{
 	return rtrn;
     }
     
-    public Point2D.Double getIntersection(Point2D.Double a, Point2D.Double b, Point2D.Double x, Point2D.Double y){
-	//for the moment, ignore vertical lines -- will throw divide by 0 error!
-
-	double m1 = (b.getY() - a.getY()) / (b.getX() - a.getX());
-	double c1 = a.getY() - m1 * a.getX();
-	
-	double m2 = (y.getY() - x.getY()) / (y.getX() - x.getX());
-	double c2 = x.getY() - m2 * x.getX();
-
-	double xval = (c2 - c1) / (m1 - m2);
-	double yval = m1*xval + c1;
-
-	//System.out.println("getIntersection: " + a + "\n" + b + "\n" + x + "\n" + y);
-	//System.out.println("xval, yval: " + xval + " " + yval);
-
-	// check if intersection point is outisde of the bounds of the two segments
-	if((xval > a.getX() && xval > b.getX()) || (xval < a.getX() && xval < b.getX()))
-	    return new Point2D.Double(999,999);
-	if((xval > x.getX() && xval > y.getX()) || (xval < x.getX() && xval < y.getX()))
-	    return new Point2D.Double(999,999);
-	if((yval > a.getY() && yval > b.getY()) || (yval < a.getY() && yval < b.getY()))
-	    return new Point2D.Double(999,999);
-	if((yval > x.getY() && yval > y.getY()) || (yval < x.getY() && yval < y.getY()))
-	    return new Point2D.Double(999,999);
-	if(((Double)xval).isNaN() || ((Double)yval).isNaN())
-	    return new Point2D.Double(999,999);
-
-	return new Point2D.Double(xval, yval);
+    /**
+     * Returns the intersections of the two infinite lines represented by the
+     * first pair of points and the second pair of points. Use Line2D to check
+     * if two segments intersect before using this result.
+     */
+    public Point2D.Double getIntersection(Point2D.Double l1a, Point2D.Double l1b, Point2D.Double l2a, Point2D.Double l2b){
+        // Formula for line intersection pulled from teh internetz (Stackoverflow)
+        double d = (l1a.x - l1b.x) * (l2a.y - l2b.y) - (l1a.y - l1b.y) * (l2a.x - l2b.x);
+        if (d == 0) {
+            throw new RuntimeException("Cannot take line intersection: " + l1a + "," + l1b + "," + l2a + "," + l2b);
+        }
+        double xval = ((l2a.x - l2b.x) * (l1a.x * l1b.y - l1a.y * l1b.x)
+                       - (l1a.x - l1b.x) * (l2a.x * l2b.y - l2a.y * l2b.x)) / d;
+        double yval = ((l2a.y - l2b.y) * (l1a.x * l1b.y - l1a.y * l1b.x)
+                       - (l1a.y - l1b.y) * (l2a.x * l2b.y - l2a.y * l2b.x)) / d;
+        return new Point2D.Double(xval, yval);
     }
 
     public double dist(Point2D.Double a, Point2D.Double b){

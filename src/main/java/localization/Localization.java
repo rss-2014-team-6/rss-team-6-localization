@@ -62,11 +62,12 @@ public class Localization implements NodeMain{
 
     protected final int MAX_PARTICLES = 1000;
 
-    protected boolean RESAMPLING = false;
-    protected int RESAMPLING_FREQUENCY = 20; // we should calibrate this -- my guess is we want to resample
+    protected boolean RESAMPLING = true;
+    // Heuristic to track roughly how much variance in particle 
+    // position has been introduced by motion.
+    protected double resamplingCount = 0.0;
+    protected double RESAMPLING_FREQUENCY = 20; // we should calibrate this -- my guess is we want to resample
                                                // about once a minute
-    protected int RESAMPLING_COUNT = 0;
-
     protected double start_x;
     protected double start_y;
     protected double start_theta;
@@ -289,6 +290,8 @@ public class Localization implements NodeMain{
             }
         }
 	
+        updateResamplingCount();
+
 	start_x = curr_x;
 	start_y = curr_y;
 	start_theta = curr_theta;
@@ -309,6 +312,24 @@ public class Localization implements NodeMain{
 	    motion_initialized = true;
 	}
     }    
+
+    /**
+     * Update our resampling count to account for variance added by motion.
+     * Expects start_x, start_y, start_theta, curr_x, curr_y, and curr_theta
+     * to be set.
+     */
+    private void updateResamplingCount() {
+        final double THETA_COEFF = 5.0;
+        final double DIST_COEFF = 1.0;
+        double deltaX = curr_x - start_x;
+        double deltaY = curr_y - start_y;
+        double deltaTheta = curr_theta - start_theta;
+        deltaTheta = deltaTheta % (Math.PI*2);
+        resamplingCount +=
+            DIST_COEFF * Math.sqrt(Math.pow(curr_x-start_x, 2)
+                                   + Math.pow(curr_y-start_y, 2)) +
+            THETA_COEFF * Math.abs(deltaTheta);
+    }
     
     // renormalize particles
     // this induces error -- since we need to represent weights as actual probabilities -- so
@@ -329,12 +350,10 @@ public class Localization implements NodeMain{
 
     // resample particles
     private synchronized void resample(){
-	if(RESAMPLING)
-	    RESAMPLING_COUNT++;
-
-	if(RESAMPLING_COUNT >= RESAMPLING_FREQUENCY){
+	if(RESAMPLING && resamplingCount >= RESAMPLING_FREQUENCY){
+            System.out.println("Resampling!");
 	    renormalize();
-	    RESAMPLING_COUNT = 0;
+	    resamplingCount = 0.0;
 
 	    ArrayList<MapParticle> newParticleList = new ArrayList<MapParticle>();
 
@@ -345,11 +364,13 @@ public class Localization implements NodeMain{
                 // Cycle through particles until we pass the randomly selected
                 // val -- more probability of landing on higher weight particles.
 		for(j=0; j<mapParticleList.size(); j++){
+                    temp += Math.exp(-1*mapParticleList.get(j).getWeight());
 		    if(temp > val)
 			break;
-		    else
-			temp += Math.exp(-1*mapParticleList.get(j).getWeight());
 		}
+                if (j >= mapParticleList.size()) {
+                    j = mapParticleList.size()-1;
+                }
                 // Duplicate the chosen particle at i.
 		newParticleList.add(new MapParticle(mapParticleList.get(j), MAX_PARTICLES, i));
 	    }
