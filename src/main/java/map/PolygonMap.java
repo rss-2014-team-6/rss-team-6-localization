@@ -70,15 +70,11 @@ public class PolygonMap implements java.io.Serializable{
     private CSpace cspace = new CSpace(obstacles, ROBOT_RADIUS);
 
     
-    // only starting with two sonars for testing
+    // up to four sonars!
     private Point2D.Double[] sonarPositions = {new Point2D.Double(.09, 0),
 					       new Point2D.Double(-.32, 0)}; 
-
-	//switched to meters
-	/*new Point2D.Double(.09, 0),
-					       new Point2D.Double(0, -.20),
-					       new Point2D.Double(-.32, 0),
-					       new Point2D.Double(0, .21)};*/
+					       new Point2D.Double(0, .21),
+					       new Point2D.Double(0, -.20)};
 
     private Point2D.Double[] bumpPositions = {new Point2D.Double(10, 10),
 					      new Point2D.Double(10, -10)};
