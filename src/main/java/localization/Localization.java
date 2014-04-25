@@ -261,6 +261,7 @@ public class Localization implements NodeMain{
         counter.decrementAndGet(); // decrement after finishing all updates
 
         resample();
+
         publishMap();
         drawParticleCloud();
     }

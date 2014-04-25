@@ -512,6 +512,14 @@ public class PolygonMap implements java.io.Serializable{
     }
 
     /**
+     * <p>Recalculate {@link #cspace}. This is a huge hack for after the map has
+     *    been serialized.</p>
+     */
+    public void recalculateCSpace() {
+        cspace = new CSpace(obstacles, ROBOT_RADIUS);
+    }
+
+    /**
      * <p>Return a human-readable string representation of this map.</p>
      *
      * @return a human-readable string representation of this map
