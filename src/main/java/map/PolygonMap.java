@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.io.Serializable;
@@ -74,8 +75,8 @@ public class PolygonMap implements java.io.Serializable{
 
     
     // up to four sonars!
-    private Point2D.Double[] sonarPositions = {new Point2D.Double(.09, 0),
-					       new Point2D.Double(-.32, 0), 
+    private Point2D.Double[] sonarPositions = {new Point2D.Double(.21, 0),
+					       new Point2D.Double(-.19, 0), 
 					       new Point2D.Double(0, .21),
 					       new Point2D.Double(0, -.20)};
 
@@ -155,8 +156,8 @@ public class PolygonMap implements java.io.Serializable{
 	    Point2D.Double sonar_start = localToGlobal(x, y, theta, sonarPositions[i]);
 	    //ehhh we should probably make the line below slightly less hacky
 	    Point2D.Double sonar_end = localToGlobal(x, y, theta, 
-						     new Point2D.Double(sonarPositions[i].getX()*100,
-									sonarPositions[i].getY()*100));
+						     new Point2D.Double(sonarPositions[i].getX()*10000,
+									sonarPositions[i].getY()*10000));
             Line2D.Double sonar_line = new Line2D.Double(sonar_start, sonar_end);
 
 	    //System.out.println("\n\nPredict sonars: \nX, y, theta: " + x + ", " + y + ", " + theta + "\nsonar start, end: " + sonar_start + ", " + sonar_end);
@@ -181,19 +182,20 @@ public class PolygonMap implements java.io.Serializable{
 	    }
 
 	    // check walls
-            PathIterator it = worldRect.getPathIterator(new AffineTransform());
-            float[] coords = new float[6];
-            while (!it.isDone()) {
-                int type = it.currentSegment(coords);
-                if (type == PathIterator.SEG_LINETO) {
-                    Point2D.Double wall_start = new Point2D.Double(coords[0], coords[1]);
-                    Point2D.Double wall_end = new Point2D.Double(coords[2], coords[3]);
-                    Line2D.Double wall_line = new Line2D.Double(wall_start, wall_end);
-                    if (wall_line.intersectsLine(sonar_line)) {
-                        Point2D.Double intersection = getIntersection(sonar_start, sonar_end, wall_start, wall_end);
-                        sonar_end = intersection;
-                        sonar_line = new Line2D.Double(sonar_start, sonar_end);
-                    }
+            double wx = worldRect.getX(),
+                wy = worldRect.getY(),
+                width = worldRect.getWidth(),
+                height = worldRect.getHeight();
+            Line2D.Double leftWall = new Line2D.Double(wx, wy, wx, wy+height);
+            Line2D.Double topWall = new Line2D.Double(wx, wy+height, wx+width, wy+height);
+            Line2D.Double rightWall = new Line2D.Double(wx+width, wy+height, wx+width, wy);
+            Line2D.Double bottomWall = new Line2D.Double(wx+width, wy, wx, wy);
+            List<Line2D.Double> walls = Arrays.asList(leftWall, topWall, rightWall, bottomWall);
+            for (Line2D.Double wall : walls) {
+                if (wall.intersectsLine(sonar_line)) {
+                    Point2D.Double intersection = getIntersection(sonar_start, sonar_end, (Point2D.Double)wall.getP1(), (Point2D.Double)wall.getP2());
+                    sonar_end = intersection;
+                    sonar_line = new Line2D.Double(sonar_start, sonar_end);
                 }
             }
 	    

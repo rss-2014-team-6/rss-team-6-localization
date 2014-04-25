@@ -64,7 +64,7 @@ public class MapParticle implements Cloneable{
 	// all particles start off with the same weight
 	this.weight = -1 * Math.log( 1.0 / numParticles);
 	this.id = id;
-	System.out.println("MAP PARTICLE " + id + ": x: " + this.x + ", y: " + this.y);
+	//System.out.println("MAP PARTICLE " + id + ": x: " + this.x + ", y: " + this.y);
    }
 
     public MapParticle(MapParticle mp, int numParticles, int id){
@@ -102,7 +102,7 @@ public class MapParticle implements Cloneable{
     // eventually, here we'll think about adding new obstacles
     public synchronized void sonarSensorUpdate(double[] sonarMeasurements){
 	double[] predicted = map.predictSonars(x, y, theta);
-	//System.out.println("Predicted vals: " + predicted[0] + ", " + predicted[1]);
+	//System.out.println("["+id+"] Predicted vals: " + predicted[0] + ", " + predicted[1] + ", " + predicted[2] + ", " + predicted[3]);
 	double logprob = 0;
 	for(int i=0; i<predicted.length; i++){
 	    if(sonarMeasurements[i] > SONAR_MIN_DIST && sonarMeasurements[i] < SONAR_MAX_DIST){
@@ -113,7 +113,7 @@ public class MapParticle implements Cloneable{
 	    }
 	}
 	weight = weight + logprob;
-	System.out.println("\t Particle " + id + ", weight: " + weight + ", delta: " + logprob);
+	//System.out.println("\t Particle " + id + ", weight: " + weight + ", delta: " + logprob);
     }
 
     // performs a motion update for this particle

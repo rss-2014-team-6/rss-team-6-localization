@@ -112,6 +112,7 @@ public class Localization implements NodeMain{
 	sonSub.addMessageListener(new MessageListener<SonarMsg>() {
             @Override
             public void onNewMessage(SonarMsg msg) {
+                System.out.println("Sonar msg, init: " + state_initialized);
                 if(state_initialized)
 		    sonarSensorUpdate(msg);
             }
@@ -314,21 +315,25 @@ public class Localization implements NodeMain{
     }    
 
     /**
-     * Update our resampling count to account for variance added by motion.
-     * Expects start_x, start_y, start_theta, curr_x, curr_y, and curr_theta
-     * to be set.
+     * Update our resampling count to account for variance added by motion,
+     * plus a baseline delta time component.
+     * Expects start_x, start_y, start_theta, start_time, curr_x, curr_y,
+     * curr_theta, and curr_time to be set.
      */
     private void updateResamplingCount() {
         final double THETA_COEFF = 5.0;
         final double DIST_COEFF = 1.0;
+        final double TIME_COEFF = 0.001;
         double deltaX = curr_x - start_x;
         double deltaY = curr_y - start_y;
         double deltaTheta = curr_theta - start_theta;
+        double deltaTime = curr_time - start_time;
         deltaTheta = deltaTheta % (Math.PI*2);
         resamplingCount +=
             DIST_COEFF * Math.sqrt(Math.pow(curr_x-start_x, 2)
                                    + Math.pow(curr_y-start_y, 2)) +
-            THETA_COEFF * Math.abs(deltaTheta);
+            THETA_COEFF * Math.abs(deltaTheta) +
+            TIME_COEFF * deltaTime;
     }
     
     // renormalize particles
