@@ -66,8 +66,9 @@ public class Localization implements NodeMain{
     // Heuristic to track roughly how much variance in particle 
     // position has been introduced by motion.
     protected double resamplingCount = 0.0;
-    protected double RESAMPLING_FREQUENCY = 20; // we should calibrate this -- my guess is we want to resample
+    protected double RESAMPLING_FREQUENCY = 10; // we should calibrate this -- my guess is we want to resample
                                                // about once a minute
+    protected double RESAMPLING_FRACTION = .75;
     protected double start_x;
     protected double start_y;
     protected double start_theta;
@@ -83,6 +84,8 @@ public class Localization implements NodeMain{
     private Random rand;
 
     private AtomicInteger counter = new AtomicInteger(0);
+
+    private String globalMapFile;
 
     ExecutorService threadpool;
 
@@ -155,6 +158,7 @@ public class Localization implements NodeMain{
 	// initialize particles
         ParameterTree paramTree = node.getParameterTree();
         final String mapFile = paramTree.getString(node.resolveName("/loc/mapFileName"));
+	globalMapFile = mapFile;
 
         for(int i=0; i<MAX_PARTICLES; i++){
             mapParticleList.add(new MapParticle(mapFile, MAX_PARTICLES, i));
@@ -172,7 +176,7 @@ public class Localization implements NodeMain{
 	
 	//insert actual bump update here
 	
-	resample();
+	//resample();
 	
 	//publishMap();
     }
@@ -363,7 +367,9 @@ public class Localization implements NodeMain{
 
 	    ArrayList<MapParticle> newParticleList = new ArrayList<MapParticle>();
 
-	    for(int i=0; i<MAX_PARTICLES; i++){
+	    int i=0;
+	    // some fraction of the particles are resampled, others are draw new
+	    for(i=0; i<MAX_PARTICLES*RESAMPLING_FRACTION; i++){
 		double val = rand.nextDouble();
 		double temp=0;
                 int j;
@@ -379,6 +385,13 @@ public class Localization implements NodeMain{
                 }
                 // Duplicate the chosen particle at i.
 		newParticleList.add(new MapParticle(mapParticleList.get(j), MAX_PARTICLES, i));
+	    }
+
+	    final String mapFile = globalMapFile;
+
+	    // the rest of the particles are made new
+	    for(i=i; i<MAX_PARTICLES; i++){
+		newParticleList.add(new MapParticle(mapFile, MAX_PARTICLES, i));
 	    }
 
             // Replace the old map particle list
