@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.Random;
 import java.lang.Math;
-import org.apache.commons.math3.distribution.NormalDistribution; // will we have access to this?
+import org.apache.commons.math3.distribution.NormalDistribution;
 
 import map.PolygonMap;
 
@@ -40,6 +40,10 @@ public class MapParticle implements Cloneable{
 
     private final double OUT_OF_BOUND_PENALTY = .001; 
 
+    // threshold for adding new obstacle-points to the map
+    private final double BUILD_THRESHOLD = .5;
+    // probability for whether we actually build the new obstacle
+    private final double BUILD_PROBABILITY = .8;
 
     // constructor
     // takes in starting map file and total number of particles
@@ -106,8 +110,15 @@ public class MapParticle implements Cloneable{
 	double logprob = 0;
 	for(int i=0; i<predicted.length; i++){
 	    if(sonarMeasurements[i] > SONAR_MIN_DIST && sonarMeasurements[i] < SONAR_MAX_DIST){
-		if(predicted[i] != -1)
+		if(predicted[i] != -1){
+		    // even if we're building, we still give this particle a hit -- later, as it
+		    // build obstacles, then it won't take future hits if it's consistent
 		    logprob += likelihood(sonarMeasurements[i], predicted[i], SONAR_VARIANCE);
+		    if(likelihood(sonarMeasurements[i], predicted[i], SONAR_VARIANCE) < BUILD_THRESHOLD){
+			if(rand.nextDouble() < BUILD_PROBABILITY)
+			    map.build(i, sonarMeasurements[i], x, y, theta);
+		    }
+		}
 		else
 		    logprob += -1 * Math.log(PROBABILITY_OF_FALSE_SONAR);
 	    }

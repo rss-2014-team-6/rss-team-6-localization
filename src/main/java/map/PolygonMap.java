@@ -4,6 +4,7 @@ package map;
 import java.lang.Double;
 import java.lang.Math;
 import java.awt.Color;
+import java.util.Random;
 
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Line2D;
@@ -70,6 +71,11 @@ public class PolygonMap implements java.io.Serializable{
     public LinkedList<PolygonObstacle> obstacles =
 	new LinkedList<PolygonObstacle>();
 
+    public LinkedList<PolygonObstacle> newObstacles = new LinkedList<PolygonObstacle>();
+
+    public LinkedList<PolygonObstacle> newPointObstacles = new LinkedList<PolygonObstacle>();
+
+
     // The CSpace of the map (should be updated every time obstacles is updated)
     private CSpace cspace = new CSpace(obstacles, ROBOT_RADIUS);
 
@@ -87,6 +93,8 @@ public class PolygonMap implements java.io.Serializable{
     private final double BUMP_THRESHOLD = .1;
     private final double SONAR_MAX_DIST = 2; //pulled out of a hat!!
     private final double SONAR_MIN_DIST = .02; //pulled out of a hat!!
+
+    private Random rand;
     
     /**
      * <p>Create a new map, parsing <code>mapFile</code>.</p>
@@ -94,6 +102,7 @@ public class PolygonMap implements java.io.Serializable{
      * @param mapFile the map file to parse, or null if none
      **/
     public PolygonMap(File mapFile) throws IOException, ParseException {
+	rand = new Random();
 	if (mapFile != null)
 	    parse(mapFile);
     }
@@ -104,6 +113,7 @@ public class PolygonMap implements java.io.Serializable{
      **/
     public PolygonMap(String mapFile) throws IOException, ParseException {
 	this((mapFile != null) ? new File(mapFile) : null);
+	rand = new Random();
     }
 
     /**
@@ -112,6 +122,7 @@ public class PolygonMap implements java.io.Serializable{
      * <p>You may populate it using the accessors below.</p>
      **/
     public PolygonMap() {
+	rand = new Random();
     }
 
     public PolygonMap(PolygonMap m){
@@ -145,6 +156,51 @@ public class PolygonMap implements java.io.Serializable{
                 && po.contains(midx + delta, midy - delta) && po.contains(midx
                 + delta, midy + delta));
     }
+
+    // adds a point-obstacle and considers adding it to its neighbors
+    public void build(int id, double value, double x, double y, double theta){
+	PolygonObstacle o = new PolygonObstacle();
+	double magnitude = Math.sqrt(Math.pow(sonarPositions[id].getX(),2) +
+				     Math.pow(sonarPositions[id].getY(),2));
+	double mult = Math.sqrt(value) / magnitude;
+	Point2D.Double loc = localToGlobal(x, y, theta, 
+				    new Point2D.Double(sonarPositions[id].getX()*mult,
+						       sonarPositions[id].getY()*mult));
+	o.addVertex(loc);
+	o.addVertex(loc.getX() + .05, loc.getY());
+	o.addVertex(loc.getX() + .05, loc.getY() + .05);
+	o.addVertex(loc.getX(), loc.getY() + .05);
+
+
+	for(PolygonObstacle b : newPointObstacles){
+	    Point2D.Double loc2 = b.getVertices().get(0);
+	    double dist = dist(loc, loc2);
+	    if(rand.nextDouble() < likelihood(dist)){
+		PolygonObstacle c = new PolygonObstacle();
+		if(loc2.getX() > loc.getX()){
+		    c.addVertex(loc2);
+		    c.addVertex(loc);
+		    c.addVertex(loc.getX(), loc.getY() + .05);
+		    c.addVertex(loc2.getX(), loc2.getY() + .05);
+		} else{
+		    c.addVertex(loc);
+		    c.addVertex(loc2);
+		    c.addVertex(loc2.getX(), loc2.getY() + .05);
+		    c.addVertex(loc.getX(), loc.getY() + .05);
+		}
+		newObstacles.add(c);
+	    }
+	}
+	newPointObstacles.add(o);
+    }
+
+    // finds the likelihood for a distance measurement
+    // proportional to 1/n^2 -- we definitely want to add anything that is less than 5 cm apart
+    private double likelihood(double value){
+	return 1 / Math.pow(value / .05, 2);
+    }
+
+
 
     // calculates what the mean sonar values should be given a robot position in the map
     // takes in the robot position
