@@ -91,8 +91,8 @@ public class PolygonMap implements java.io.Serializable{
 					      new Point2D.Double(10, -10)};
 
     private final double BUMP_THRESHOLD = .1;
-    private final double SONAR_MAX_DIST = 2; //pulled out of a hat!!
-    private final double SONAR_MIN_DIST = .02; //pulled out of a hat!!
+    private final double SONAR_MAX_DIST = 1.2; //pulled out of a hat!!
+    private final double SONAR_MIN_DIST = .2; //pulled out of a hat!!
 
     private Random rand;
     

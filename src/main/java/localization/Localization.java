@@ -30,6 +30,7 @@ import org.ros.message.MessageListener;
 import java.lang.Runtime;
 import java.lang.Thread;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import java.util.Random;
@@ -60,7 +61,8 @@ public class Localization implements NodeMain{
 
     protected ArrayList<MapParticle> mapParticleList = new ArrayList<MapParticle>();
 
-    protected final int MAX_PARTICLES = 1000;
+    protected static final int MAX_PARTICLES = 1000;
+    protected static final double CONFIDENCE_THRESH = 0.30;
 
     protected boolean RESAMPLING = true;
     // Heuristic to track roughly how much variance in particle 
@@ -68,7 +70,19 @@ public class Localization implements NodeMain{
     protected double resamplingCount = 0.0;
     protected double RESAMPLING_FREQUENCY = 10; // we should calibrate this -- my guess is we want to resample
                                                // about once a minute
+    /**
+     * How many of the resampled particles are chosen based on
+     * existing weights (the rest are resampled new).
+     */
     protected double RESAMPLING_FRACTION = .75;
+    /**
+     * Particles above this probability and kept with their original
+     * weight. Rest are resampled.
+     */
+    protected double RESAMPLING_KEEP_PROB_THRESH = 0.01;
+
+    protected MapParticle prevBestParticle;
+
     protected double start_x;
     protected double start_y;
     protected double start_theta;
@@ -160,8 +174,9 @@ public class Localization implements NodeMain{
         final String mapFile = paramTree.getString(node.resolveName("/loc/mapFileName"));
 	globalMapFile = mapFile;
 
+        final double particleWeight = -1 * Math.log(1.0 / MAX_PARTICLES);
         for(int i=0; i<MAX_PARTICLES; i++){
-            mapParticleList.add(new MapParticle(mapFile, MAX_PARTICLES, i));
+            mapParticleList.add(new MapParticle(mapFile, particleWeight, i));
         }
     }
 	
@@ -201,14 +216,30 @@ public class Localization implements NodeMain{
     private void publishMap(){
 	// Best weight is the minimum, since we're using negative log
         double minWeight = Double.POSITIVE_INFINITY;
+        double totalWeight = 0;
         MapParticle bestParticle = null;
         for (MapParticle particle : mapParticleList) {
-            if (particle.getWeight() < minWeight) {
+            double weight = particle.getWeight();
+            System.out.print(weight + " ");
+            if (weight < minWeight) {
                 minWeight = particle.getWeight();
                 bestParticle = particle;
             }
+            totalWeight += Math.exp(-1 * weight);
         }
-	System.out.println("Particle ID: " + bestParticle.getID() + ", weight: " + bestParticle.getWeight()
+        double confidence = Math.exp(-1 * minWeight) / totalWeight;
+        // No particles stand out enough (probably after resampling)
+        if (confidence < CONFIDENCE_THRESH && prevBestParticle != null) {
+            // Go with our previous most confident particle, if there is one
+            bestParticle = prevBestParticle;
+            System.out.println("Selecting prev best particle");
+        }
+        else if (confidence > CONFIDENCE_THRESH) {
+            prevBestParticle = new MapParticle(bestParticle, minWeight, bestParticle.getID());
+            System.out.println("Particle is good conf");
+        }
+	System.out.println("Particle ID: " + bestParticle.getID() + ", weight: " + minWeight +
+                           "\n totalweight: " + totalWeight + ", conf: " + confidence
 			   + "\n pos: " + bestParticle.getPosition());
 	// Serialize and publish the map
         PolygonMap map = bestParticle.getMap();
@@ -294,6 +325,18 @@ public class Localization implements NodeMain{
 			}
 		    });
             }
+            // Also update our prev best particle, in case we need to fall back on it
+            if (prevBestParticle != null) {
+                final MapParticle prevBestParticleFinal = prevBestParticle;
+                threadpool.execute(
+                    new Runnable() {
+                        @Override public void run() {
+                            synchronized(prevBestParticleFinal) {
+                                prevBestParticleFinal.motionUpdate(curr_x - start_x, curr_y - start_y, curr_theta - start_theta, (curr_time - start_time) * MILLIS_TO_SECS, start_theta);
+                            }
+                        }
+                    });
+            }
         }
 	
         updateResamplingCount();
@@ -351,6 +394,7 @@ public class Localization implements NodeMain{
 	
 	for(int i=0; i<mapParticleList.size(); i++)
 	    sum += Math.exp(-1*mapParticleList.get(i).getWeight());
+        System.out.println(sum);
 
 	for(int i=0; i<mapParticleList.size(); i++){
 	    double w = mapParticleList.get(i).getWeight();
@@ -367,31 +411,46 @@ public class Localization implements NodeMain{
 
 	    ArrayList<MapParticle> newParticleList = new ArrayList<MapParticle>();
 
-	    int i=0;
+            int index = 0;
+            double totalProb = 0;
+            for(MapParticle p : mapParticleList) {
+                double weight = p.getWeight();
+                if (Math.exp(-1*weight) >= RESAMPLING_KEEP_PROB_THRESH) {
+                    newParticleList.add(new MapParticle(p, weight, index));
+                    index++;
+                    totalProb += Math.exp(-1*weight);
+                }
+            }
+            int kept = index+1;
+            System.out.println(kept + " total particles kept.");
 	    // some fraction of the particles are resampled, others are draw new
-	    for(i=0; i<MAX_PARTICLES*RESAMPLING_FRACTION; i++){
-		double val = rand.nextDouble();
-		double temp=0;
+	    for(int i = 0; i < (MAX_PARTICLES-kept); i++) {
+                double val = rand.nextDouble();
+                double temp=0;
                 int j;
                 // Cycle through particles until we pass the randomly selected
                 // val -- more probability of landing on higher weight particles.
-		for(j=0; j<mapParticleList.size(); j++){
+                for(j=0; j<mapParticleList.size(); j++){
                     temp += Math.exp(-1*mapParticleList.get(j).getWeight());
-		    if(temp > val)
-			break;
-		}
+                    if(temp > val)
+                        break;
+                }
                 if (j >= mapParticleList.size()) {
                     j = mapParticleList.size()-1;
                 }
-                // Duplicate the chosen particle at i.
-		newParticleList.add(new MapParticle(mapParticleList.get(j), MAX_PARTICLES, i));
+                // Duplicate the chosen particle at index.
+                double newWeight = -1 * Math.log((1-totalProb) / MAX_PARTICLES);
+                newParticleList.add(new MapParticle(mapParticleList.get(j), newWeight, index));
+                index++;
+                if (index >= MAX_PARTICLES * RESAMPLING_FRACTION) break;
 	    }
 
 	    final String mapFile = globalMapFile;
 
 	    // the rest of the particles are made new
-	    for(i=i; i<MAX_PARTICLES; i++){
-		newParticleList.add(new MapParticle(mapFile, MAX_PARTICLES, i));
+	    for(int i = index; i<MAX_PARTICLES; i++){
+                double newWeight = -1 * Math.log((1-totalProb) / MAX_PARTICLES);
+		newParticleList.add(new MapParticle(mapFile, newWeight, i));
 	    }
 
             // Replace the old map particle list

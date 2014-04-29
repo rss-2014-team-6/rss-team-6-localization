@@ -46,8 +46,8 @@ public class MapParticle implements Cloneable{
     private final double BUILD_PROBABILITY = .8;
 
     // constructor
-    // takes in starting map file and total number of particles
-    public MapParticle(String startMapFile, int numParticles, int id) {
+    // takes in starting map file, weight for new particle, and id
+    public MapParticle(String startMapFile, double weight, int id) {
 	try{
 	    this.map = new PolygonMap(startMapFile);
 	} catch (IOException e){
@@ -66,13 +66,13 @@ public class MapParticle implements Cloneable{
 	this.y = ty;
 	this.theta = rand.nextDouble() * Math.PI * 2;
 	// all particles start off with the same weight
-	this.weight = -1 * Math.log( 1.0 / numParticles);
+	this.weight = weight;
 	this.id = id;
 	//System.out.println("MAP PARTICLE " + id + ": x: " + this.x + ", y: " + this.y);
    }
 
-    public MapParticle(MapParticle mp, int numParticles, int id){
-	this.weight = -1 * Math.log( 1.0 / numParticles);
+    public MapParticle(MapParticle mp, double weight, int id){
+	this.weight = weight;
 	this.x = mp.getX();
 	this.y = mp.getY();
 	this.theta = mp.getTheta();
@@ -182,7 +182,7 @@ public class MapParticle implements Cloneable{
 	return new Point2D.Double(x, y);
     }
 
-    public double getID(){
+    public int getID(){
 	return id;
     }
 
