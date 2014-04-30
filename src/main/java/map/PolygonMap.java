@@ -84,10 +84,10 @@ public class PolygonMap implements java.io.Serializable{
     
     // up to four sonars!
     // {front, back, left, right}
-    private Point2D.Double[] sonarPositions = {new Point2D.Double(.155, 0),
-					       new Point2D.Double(-.095, -.15),
-					       new Point2D.Double(0, .15),
-					       new Point2D.Double(0, -.15)};
+    private Point2D.Double[] sonarPositions = {new Point2D.Double(.13, 0),
+					       new Point2D.Double(-.115, -.09),
+					       new Point2D.Double(0, .14),
+					       new Point2D.Double(0, -.14)};
 
     private Point2D.Double[] bumpPositions = {new Point2D.Double(10, 10),
 					      new Point2D.Double(10, -10)};
