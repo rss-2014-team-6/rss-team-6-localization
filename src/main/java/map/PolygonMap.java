@@ -65,7 +65,8 @@ public class PolygonMap implements java.io.Serializable{
     // The location and size of the world boundary, read in from the map file
     public Rectangle2D.Double worldRect = new Rectangle2D.Double();
 
-    private double ROBOT_RADIUS = .3;
+    private double ROBOT_REAL_RADIUS = 0.26;
+    private double ROBOT_SOFT_RADIUS = 0.2;
 
     // The obstacles (does not include the world boundary).</p>
     public LinkedList<PolygonObstacle> obstacles =
@@ -77,22 +78,23 @@ public class PolygonMap implements java.io.Serializable{
 
 
     // The CSpace of the map (should be updated every time obstacles is updated)
-    private CSpace cspace = new CSpace(obstacles, ROBOT_RADIUS);
+    private CSpace cspace = new CSpace(obstacles, ROBOT_REAL_RADIUS);
+    private CSpace softCspace = new CSpace(obstacles, ROBOT_SOFT_RADIUS);
 
     
     // up to four sonars!
     // {front, back, left, right}
-    private Point2D.Double[] sonarPositions = {new Point2D.Double(.215, 0),
-					       new Point2D.Double(-.21, -.15),
-					       new Point2D.Double(0, .215),
-					       new Point2D.Double(0, -.215)};
+    private Point2D.Double[] sonarPositions = {new Point2D.Double(.155, 0),
+					       new Point2D.Double(-.095, -.15),
+					       new Point2D.Double(0, .15),
+					       new Point2D.Double(0, -.15)};
 
     private Point2D.Double[] bumpPositions = {new Point2D.Double(10, 10),
 					      new Point2D.Double(10, -10)};
 
     private final double BUMP_THRESHOLD = .1;
     private final double SONAR_MAX_DIST = 1.2; //pulled out of a hat!!
-    private final double SONAR_MIN_DIST = .2; //pulled out of a hat!!
+    private final double SONAR_MIN_DIST = .25; //pulled out of a hat!!
 
     private Random rand;
     
@@ -139,9 +141,9 @@ public class PolygonMap implements java.io.Serializable{
 	    if(isPointInObstacle(pt, o))
 		return false;
 	}
-	if(x < worldRect.getX() + ROBOT_RADIUS || x > worldRect.getWidth() + worldRect.getX() - .3)
+	if(x < worldRect.getX() + ROBOT_SOFT_RADIUS || x > worldRect.getWidth() + worldRect.getX() - ROBOT_SOFT_RADIUS)
 	    return false;
-	if(y < worldRect.getY() + ROBOT_RADIUS || y > worldRect.getHeight() + worldRect.getY() - .3)
+	if(y < worldRect.getY() + ROBOT_SOFT_RADIUS || y > worldRect.getHeight() + worldRect.getY() - ROBOT_SOFT_RADIUS)
 	    return false;
 	return true;
     }
@@ -515,7 +517,8 @@ public class PolygonMap implements java.io.Serializable{
 		    break;
 	    }
 
-            cspace = new CSpace(obstacles, ROBOT_RADIUS);
+            cspace = new CSpace(obstacles, ROBOT_REAL_RADIUS);
+            softCspace = new CSpace(obstacles, ROBOT_SOFT_RADIUS);
 
 	} catch (NumberFormatException e) {
 	    throw new ParseException("malformed number on line " + lineNumber,
@@ -569,11 +572,21 @@ public class PolygonMap implements java.io.Serializable{
     }
 
     /**
+     * <p>Get {@link #softCspace}.</p>
+     *
+     * @return a reference to <code>softCspace</code>
+     **/
+    public CSpace getSoftCSpace() {
+        return softCspace;
+    }
+
+    /**
      * <p>Recalculate {@link #cspace}. This is a huge hack for after the map has
      *    been serialized.</p>
      */
     public void recalculateCSpace() {
-        cspace = new CSpace(obstacles, ROBOT_RADIUS);
+        cspace = new CSpace(obstacles, ROBOT_REAL_RADIUS);
+        softCspace = new CSpace(obstacles, ROBOT_SOFT_RADIUS);
     }
 
     /**

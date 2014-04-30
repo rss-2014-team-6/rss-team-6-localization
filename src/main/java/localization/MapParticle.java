@@ -33,10 +33,10 @@ public class MapParticle implements Cloneable{
 
     private final double PROBABILITY_OF_BUMP_IF_IN_POSITION = .9;
     private final double PROBABILITY_OF_BUMP_IF_NOT_IN_POSITION = .02;
-    private final double PROBABILITY_OF_FALSE_SONAR = .2; //pulled out of a hat!
+    private final double PROBABILITY_OF_FALSE_SONAR = .05; //pulled out of a hat!
 
     private final double SONAR_MAX_DIST = 1.2; //check for real value
-    private final double SONAR_MIN_DIST = .02;
+    private final double SONAR_MIN_DIST = .25;
 
     private final double OUT_OF_BOUND_PENALTY = .001; 
 
@@ -106,7 +106,7 @@ public class MapParticle implements Cloneable{
     // eventually, here we'll think about adding new obstacles
     public synchronized void sonarSensorUpdate(double[] sonarMeasurements){
 	double[] predicted = map.predictSonars(x, y, theta);
-	//System.out.println("["+id+"] Predicted vals: " + predicted[0] + ", " + predicted[1] + ", " + predicted[2] + ", " + predicted[3]);
+	// System.out.println("["+id+"] Predicted vals: " + predicted[0] + ", " + predicted[1] + ", " + predicted[2] + ", " + predicted[3]);
 	double logprob = 0;
 	for(int i=0; i<predicted.length; i++){
 	    if(sonarMeasurements[i] > SONAR_MIN_DIST && sonarMeasurements[i] < SONAR_MAX_DIST){
@@ -114,14 +114,21 @@ public class MapParticle implements Cloneable{
 		    // even if we're building, we still give this particle a hit -- later, as it
 		    // build obstacles, then it won't take future hits if it's consistent
 		    logprob += likelihood(sonarMeasurements[i], predicted[i], SONAR_VARIANCE);
+                    /*
 		    if(likelihood(sonarMeasurements[i], predicted[i], SONAR_VARIANCE) < BUILD_THRESHOLD){
 			if(rand.nextDouble() < BUILD_PROBABILITY)
 			    map.build(i, sonarMeasurements[i], x, y, theta);
 		    }
+                    */
 		}
 		else
 		    logprob += -1 * Math.log(PROBABILITY_OF_FALSE_SONAR);
 	    }
+            else {
+                if (predicted[i] != -1) {
+                    logprob += -1 * Math.log(PROBABILITY_OF_FALSE_SONAR);
+                }
+            }
 	}
 	weight = weight + logprob;
 	//System.out.println("\t Particle " + id + ", weight: " + weight + ", delta: " + logprob);
@@ -134,7 +141,9 @@ public class MapParticle implements Cloneable{
     // returns nothing, but particle position changes
     public synchronized void motionUpdate(double deltaX, double deltaY, double deltaTheta, double deltaTime, double odoRefTheta) {
 	// Rotate deltaX and deltaY by (theta - odoRefTheta)
-	if(deltaX > MOTION_THRESHOLD || deltaY > MOTION_THRESHOLD || deltaTheta > MOTION_THRESHOLD){
+	if(Math.abs(deltaX) > MOTION_THRESHOLD ||
+           Math.abs(deltaY) > MOTION_THRESHOLD ||
+           Math.abs(deltaTheta) > MOTION_THRESHOLD) {
 	    double rotTheta = theta - odoRefTheta;
 	    double realDeltaX = deltaX*Math.cos(rotTheta) - deltaY*Math.sin(rotTheta);
 	    double realDeltaY = deltaX*Math.sin(rotTheta) + deltaY*Math.cos(rotTheta);
@@ -142,6 +151,13 @@ public class MapParticle implements Cloneable{
 	    x += sample(realDeltaX, X_VARIANCE*dist);
 	    y += sample(realDeltaY, Y_VARIANCE*dist);
 	    theta += sample(deltaTheta, THETA_VARIANCE*dist);
+            // Normalize theta to be in the right range
+            if (theta > 0) {
+                theta = theta % (Math.PI * 2);
+            }
+            else { 
+                theta = (theta % (Math.PI * 2)) + Math.PI * 2;
+            }
 	}
 
 	if(!map.isValid(x,y))
