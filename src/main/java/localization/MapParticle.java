@@ -24,7 +24,7 @@ public class MapParticle implements Cloneable{
 
     // variance values -- should determine from experimentation
     // numbers are pulled out of a hat for now
-    private final double SONAR_VARIANCE = .2;
+    private final double SONAR_VARIANCE = .01;
     private final double FIDUCIAL_VARIANCE = .2;
     private final double X_VARIANCE = .001;
     private final double Y_VARIANCE = .001;

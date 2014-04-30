@@ -74,7 +74,7 @@ public class Localization implements NodeMain{
      * How many of the resampled particles are chosen based on
      * existing weights (the rest are resampled new).
      */
-    protected double RESAMPLING_FRACTION = .75;
+    protected double RESAMPLING_FRACTION = .6;
     /**
      * Particles above this probability and kept with their original
      * weight. Rest are resampled.
@@ -220,7 +220,7 @@ public class Localization implements NodeMain{
         MapParticle bestParticle = null;
         for (MapParticle particle : mapParticleList) {
             double weight = particle.getWeight();
-            System.out.print(weight + " ");
+            //System.out.print(weight + " ");
             if (weight < minWeight) {
                 minWeight = particle.getWeight();
                 bestParticle = particle;
@@ -394,7 +394,7 @@ public class Localization implements NodeMain{
 	
 	for(int i=0; i<mapParticleList.size(); i++)
 	    sum += Math.exp(-1*mapParticleList.get(i).getWeight());
-        System.out.println(sum);
+        //System.out.println(sum);
 
 	for(int i=0; i<mapParticleList.size(); i++){
 	    double w = mapParticleList.get(i).getWeight();
