@@ -61,7 +61,7 @@ public class Localization implements NodeMain{
 
     protected ArrayList<MapParticle> mapParticleList = new ArrayList<MapParticle>();
 
-    protected static final int MAX_PARTICLES = 1000;
+    protected static final int MAX_PARTICLES = 2000;
     protected static final double CONFIDENCE_THRESH = 0.30;
 
     protected boolean RESAMPLING = true;
@@ -74,12 +74,16 @@ public class Localization implements NodeMain{
      * How many of the resampled particles are chosen based on
      * existing weights (the rest are resampled new).
      */
-    protected double RESAMPLING_FRACTION = .6;
+    protected double RESAMPLING_FRACTION = .05;
     /**
      * Particles above this probability and kept with their original
      * weight. Rest are resampled.
      */
     protected double RESAMPLING_KEEP_PROB_THRESH = 0.01;
+    /**
+     * Maximum possible noise to add to each coord for resampled particles.
+     */
+    protected double RESAMPLING_NOISE = 0.1;
 
     protected MapParticle prevBestParticle;
 
@@ -452,9 +456,10 @@ public class Localization implements NodeMain{
                 if (j >= mapParticleList.size()) {
                     j = mapParticleList.size()-1;
                 }
-                // Duplicate the chosen particle at index.
+                // Duplicate the chosen particle at index with noise.
                 double newWeight = -1 * Math.log((1-totalProb) / MAX_PARTICLES);
-                newParticleList.add(new MapParticle(mapParticleList.get(j), newWeight, index));
+                newParticleList.add(
+                    new MapParticle(mapParticleList.get(j), newWeight, index, RESAMPLING_NOISE));
                 index++;
                 if (index >= MAX_PARTICLES * RESAMPLING_FRACTION) break;
 	    }

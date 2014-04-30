@@ -24,19 +24,19 @@ public class MapParticle implements Cloneable{
 
     // variance values -- should determine from experimentation
     // numbers are pulled out of a hat for now
-    private final double SONAR_VARIANCE = .01;
+    private final double SONAR_VARIANCE = .2;
     private final double FIDUCIAL_VARIANCE = .2;
     private final double X_VARIANCE = .001;
     private final double Y_VARIANCE = .001;
-    private final double THETA_VARIANCE = .03;
+    private final double THETA_VARIANCE = .1; // TEMP: was .03
     private final double MOTION_THRESHOLD = .001;
 
     private final double PROBABILITY_OF_BUMP_IF_IN_POSITION = .9;
     private final double PROBABILITY_OF_BUMP_IF_NOT_IN_POSITION = .02;
-    private final double PROBABILITY_OF_FALSE_SONAR = .05; //pulled out of a hat!
+    private final double PROBABILITY_OF_FALSE_SONAR = .0001; //pulled out of a hat!
 
     private final double SONAR_MAX_DIST = 1.2; //check for real value
-    private final double SONAR_MIN_DIST = .25;
+    private final double SONAR_MIN_DIST = .20;
 
     private final double OUT_OF_BOUND_PENALTY = .001; 
 
@@ -71,10 +71,21 @@ public class MapParticle implements Cloneable{
 	//System.out.println("MAP PARTICLE " + id + ": x: " + this.x + ", y: " + this.y);
    }
 
-    public MapParticle(MapParticle mp, double weight, int id){
+    /**
+     * Duplication constructor without noise.
+     */
+    public MapParticle(MapParticle mp, double weight, int id) {
+        this(mp, weight, id, 0.0);
+    }
+
+    /**
+     * Duplication constructor. Duplicates the particle using the given new weight
+     * and id. Adds error randomly selected from [-posNoise/2,posNoise/2) to each coord.
+     */
+    public MapParticle(MapParticle mp, double weight, int id, double posNoise){
 	this.weight = weight;
-	this.x = mp.getX();
-	this.y = mp.getY();
+	this.x = mp.getX() + Math.random()*posNoise - posNoise/2.0;
+	this.y = mp.getY() + Math.random()*posNoise - posNoise/2.0;
 	this.theta = mp.getTheta();
 	rand = new Random();
 	this.id = id;
@@ -124,13 +135,17 @@ public class MapParticle implements Cloneable{
 		else
 		    logprob += -1 * Math.log(PROBABILITY_OF_FALSE_SONAR);
 	    }
+            /*
+            // Lose probability for missed sonar readings when we should have some
+            // Removed for now, because reflectivity issues at small angles.x
             else {
                 if (predicted[i] != -1) {
                     logprob += -1 * Math.log(PROBABILITY_OF_FALSE_SONAR);
                 }
             }
+            */
 	}
-	weight = weight + logprob;
+	weight = weight/1.25 + logprob;
 	//System.out.println("\t Particle " + id + ", weight: " + weight + ", delta: " + logprob);
     }
 
