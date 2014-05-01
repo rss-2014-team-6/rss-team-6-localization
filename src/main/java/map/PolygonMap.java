@@ -5,6 +5,7 @@ import java.lang.Double;
 import java.lang.Math;
 import java.awt.Color;
 import java.util.Random;
+import java.util.HashMap;
 
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Line2D;
@@ -92,6 +93,10 @@ public class PolygonMap implements java.io.Serializable{
     private Point2D.Double[] bumpPositions = {new Point2D.Double(10, 10),
 					      new Point2D.Double(10, -10)};
 
+    // fiducial positions (for now) -- will need to be set via parser eventually
+    private HashMap<Point2D.Double, Point2D.Double> fiducials = new HashMap<Point2D.Double, Point2D.Double>();
+    
+
     private final double BUMP_THRESHOLD = .1;
     private final double SONAR_MAX_DIST = 1.2; //pulled out of a hat!!
     private final double SONAR_MIN_DIST = .25; //pulled out of a hat!!
@@ -107,6 +112,9 @@ public class PolygonMap implements java.io.Serializable{
 	rand = new Random();
 	if (mapFile != null)
 	    parse(mapFile);
+	fiducials.put(new Point2D.Double(3.0, 4.0), new Point2D.Double(.96, -.4953));
+	fiducials.put(new Point2D.Double(1.0, 3.0), new Point2D.Double(2.27, 2.33));
+	fiducials.put(new Point2D.Double(1.0, 3.0), new Point2D.Double(-.6096, 3.17));
     }
 
 
@@ -125,6 +133,9 @@ public class PolygonMap implements java.io.Serializable{
      **/
     public PolygonMap() {
 	rand = new Random();
+	fiducials.put(new Point2D.Double(3.0, 4.0), new Point2D.Double(.96, -.4953));
+	fiducials.put(new Point2D.Double(1.0, 3.0), new Point2D.Double(2.27, 2.33));
+	fiducials.put(new Point2D.Double(1.0, 3.0), new Point2D.Double(-.6096, 3.17));
     }
 
     public PolygonMap(PolygonMap m){
@@ -200,6 +211,24 @@ public class PolygonMap implements java.io.Serializable{
     // proportional to 1/n^2 -- we definitely want to add anything that is less than 5 cm apart
     private double likelihood(double value){
 	return 1 / Math.pow(value / .05, 2);
+    }
+
+    public double[] predictFiducials(double x, double y, double theta, int top, int bottom){
+	Point2D.Double id = new Point2D.Double((double)top, (double)bottom);
+	Point2D.Double loc = fiducials.get(id);
+	Point2D.Double rel = globalToLocal(x, y, theta, loc);
+	double[] rtrn = new double[2];
+	rtrn[0] = Math.atan2(rel.getX(), rel.getY());
+	rtrn[1] = Math.sqrt(Math.pow(rel.getX(), 2) + Math.pow(rel.getY(), 2));
+	return rtrn;
+    }
+
+    private Point2D.Double globalToLocal(double x, double y, double theta, Point2D.Double loc){
+	double xval = loc.getX() - x;
+	double yval = loc.getY() - y;
+	double xpos = xval * Math.cos(theta) + yval * Math.sin(theta);
+	double ypos = -yval * Math.sin(theta) + xval * Math.cos(theta);
+	return new Point2D.Double(xpos, ypos);
     }
 
 

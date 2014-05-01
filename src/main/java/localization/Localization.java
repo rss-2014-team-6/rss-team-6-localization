@@ -327,8 +327,41 @@ public class Localization implements NodeMain{
     // performs sensor updates based on fiducial observation
     // updates the particle list, doesn't return anything
     public synchronized void fiducialSensorUpdate(FiducialMsg msg){
-	// TODO: sensor update
-	// can do similarly to sonar update
+	if(Math.abs(msg.getTime() - curr_time) < 50){
+	    counter.incrementAndGet(); // add one before doing updates as a chunk
+
+	    motionUpdate();
+
+	    final double range = msg.getRange();
+	    final double bearing = msg.getBearing();
+	    final int top = (int)msg.getTop();
+	    final int bottom = (int)msg.getBottom();
+
+	    if(motion_initialized) {
+		for(int i=0; i<mapParticleList.size(); i++){
+		    counter.incrementAndGet();
+		    final MapParticle particle = mapParticleList.get(i);
+		    threadpool.execute(
+				       new Runnable() {
+					   @Override public void run() {
+					       synchronized(particle) {
+						   particle.fiducialSensorUpdate(range, bearing, top, bottom);
+						   counter.decrementAndGet();
+					       }
+					   }
+				       });
+		}
+	    }
+
+	    counter.decrementAndGet(); // decrement after finishing all updates
+	}else{
+	    System.out.println("T\nT\nT\nDIFF TOO BIG! IGNORING SONAR UPDATE!!\nT\nT\nT");
+	}
+
+        resample();
+
+        publishMap();
+        drawParticleCloud();
     }
 
     // performs motion updates based on odometry for all particles

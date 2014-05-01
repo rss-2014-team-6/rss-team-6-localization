@@ -25,7 +25,6 @@ public class MapParticle implements Cloneable{
     // variance values -- should determine from experimentation
     // numbers are pulled out of a hat for now
     private final double SONAR_VARIANCE = .2;
-    private final double FIDUCIAL_VARIANCE = .2;
     private final double X_VARIANCE = .001;
     private final double Y_VARIANCE = .001;
     private final double THETA_VARIANCE = .1; // TEMP: was .03
@@ -34,6 +33,10 @@ public class MapParticle implements Cloneable{
     private final double PROBABILITY_OF_BUMP_IF_IN_POSITION = .9;
     private final double PROBABILITY_OF_BUMP_IF_NOT_IN_POSITION = .02;
     private final double PROBABILITY_OF_FALSE_SONAR = .0001; //pulled out of a hat!
+
+    private final double PROBABILITY_OF_FALSE_FIDUCIAL = .00001; // pulled out of a bigger hat!
+    private final double FIDUCIAL_BEARING_VARIANCE = .1;
+    private final double FIDUCIAL_RANGE_VARIANCE = .2;
 
     private final double SONAR_MAX_DIST = 1.2; //check for real value
     private final double SONAR_MIN_DIST = .20;
@@ -149,6 +152,25 @@ public class MapParticle implements Cloneable{
 	//System.out.println("\t Particle " + id + ", weight: " + weight + ", delta: " + logprob);
     }
 
+    // performs a sensor update for this particle for fiducialss
+    // fiducialMeasurements are ranges + bearings
+    // returns nothing, but particle weight changes
+    // eventually, here we'll think about adding new obstacles
+    public synchronized void fiducialSensorUpdate(double range, double bearing, int top, int bottom){
+	double[] predicted = map.predictFiducials(x, y, theta, top, bottom);
+	double logprob = 0;
+	if(predicted[1] != -1){
+	    logprob += likelihood(range, predicted[0], FIDUCIAL_RANGE_VARIANCE);
+	    logprob += likelihood(bearing, predicted[1], FIDUCIAL_BEARING_VARIANCE);
+	}
+	else
+	    logprob += -1 * Math.log(PROBABILITY_OF_FALSE_FIDUCIAL);
+    	weight = weight/1.0 + logprob;
+	//System.out.println("\t Particle " + id + ", weight: " + weight + ", delta: " + logprob);
+    }
+
+
+
     // performs a motion update for this particle
     // takes in delta values from odometry message
     // as well as a reference theta to offset the
@@ -233,7 +255,12 @@ public class MapParticle implements Cloneable{
 	NormalDistribution normal = new NormalDistribution(mean, Math.sqrt(variance)); // stdv is sqrt of var
 	if(value >  mean)
 	    value = mean - (value - mean); // move value to equally far away but smaller than mean
-	double p = normal.cumulativeProbability(value);
+
+	// cumulativeProbability takes P(X <= x), so this is right when value < mean (as we ensured above)
+	// I just added in a multiply by 2 because with the zero mean assumption, it could be just as far away 
+	// on either side.  That shouldn't really affect things, though.
+	double p = 2 * normal.cumulativeProbability(value);
+
 	return -1 * Math.log(p);
     }
 
