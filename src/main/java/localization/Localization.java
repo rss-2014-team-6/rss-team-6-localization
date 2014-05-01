@@ -68,13 +68,13 @@ public class Localization implements NodeMain{
     // Heuristic to track roughly how much variance in particle 
     // position has been introduced by motion.
     protected double resamplingCount = 0.0;
-    protected double RESAMPLING_FREQUENCY = 50; // we should calibrate this -- my guess is we want to resample
+    protected double RESAMPLING_FREQUENCY = 10; // we should calibrate this -- my guess is we want to resample
                                                // about once a minute
     /**
      * How many of the resampled particles are chosen based on
      * existing weights (the rest are resampled new).
      */
-    protected double RESAMPLING_FRACTION = .05;
+    protected double RESAMPLING_FRACTION = .5;
     /**
      * Particles above this probability and kept with their original
      * weight. Rest are resampled.
@@ -247,9 +247,16 @@ public class Localization implements NodeMain{
         double[] predicted = bestParticle.getMap().predictSonars(
             bestParticle.getX(), bestParticle.getY(), bestParticle.getTheta());
         System.out.println("Predicted vals: " + predicted[0] + ", " + predicted[1] + ", " + predicted[2] + ", " + predicted[3]);
-	System.out.println("Particle ID: " + bestParticle.getID() + ", weight: " + minWeight +
+	System.out.println("Particle ID: " + bestParticle.getID() + ", weight: " + minWeight + ", prob: " + Math.exp(-1*minWeight) + 
                            "\n totalweight: " + totalWeight + ", conf: " + confidence
 			   + "\n pos: " + bestParticle.getPosition());
+	if(((Double)totalWeight).isNaN()){
+	    // for(MapParticle p : mapParticleList)
+	    //System.out.println("ID: " + p.getID() + " wt: " + p.getWeight());
+	}
+        if(totalWeight == 1)
+	    for(MapParticle p : mapParticleList)
+		System.out.println("ID: " + p.getID() + " wt: " + p.getWeight());
 	// Serialize and publish the map
         PolygonMap map = bestParticle.getMap();
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
@@ -280,29 +287,36 @@ public class Localization implements NodeMain{
     // performs sensor updates based on sonar values for all particles
     // updates the particle list, doesn't return anything
     public synchronized void sonarSensorUpdate(SonarMsg msg) {
-        counter.incrementAndGet(); // add one before doing updates as a chunk
+	System.out.println("Sonar timestamp: " + msg.getTime() + " Odometry timestamp: " + curr_time);
+	System.out.println("DIFFFFF: " + (msg.getTime() - curr_time));
 
-        motionUpdate();
+	if(Math.abs(msg.getTime() - curr_time) < 50){
+	    counter.incrementAndGet(); // add one before doing updates as a chunk
 
-        final double[] vals = msg.getSonarValues();
+	    motionUpdate();
 
-        if(motion_initialized) {
-            for(int i=0; i<mapParticleList.size(); i++){
-                counter.incrementAndGet();
-                final MapParticle particle = mapParticleList.get(i);
-                threadpool.execute(
-                    new Runnable() {
-                        @Override public void run() {
-                            synchronized(particle) {
-                                particle.sonarSensorUpdate(vals);
-                                counter.decrementAndGet();
-                            }
-                        }
-                    });
-            }
-        }
+	    final double[] vals = msg.getSonarValues();
 
-        counter.decrementAndGet(); // decrement after finishing all updates
+	    if(motion_initialized) {
+		for(int i=0; i<mapParticleList.size(); i++){
+		    counter.incrementAndGet();
+		    final MapParticle particle = mapParticleList.get(i);
+		    threadpool.execute(
+				       new Runnable() {
+					   @Override public void run() {
+					       synchronized(particle) {
+						   particle.sonarSensorUpdate(vals);
+						   counter.decrementAndGet();
+					       }
+					   }
+				       });
+		}
+	    }
+
+	    counter.decrementAndGet(); // decrement after finishing all updates
+	}else{
+	    System.out.println("T\nT\nT\nDIFF TOO BIG! IGNORING SONAR UPDATE!!\nT\nT\nT");
+	}
 
         resample();
 
@@ -411,11 +425,19 @@ public class Localization implements NodeMain{
                 minWeight = p.getWeight();
             }
         }
-	
+	if(minWeight == Double.POSITIVE_INFINITY)
+	    System.out.println("X\nX\nX\n POSITIVE INFINITY CURSE YOU TEJ \nX\nX\nX");
+
 	for(MapParticle p : mapParticleList) {
             double w = p.getWeight();
             p.setWeight(w - minWeight);
+	    sum += Math.exp(-1*p.getWeight());
         }
+
+	for(int i=0; i<mapParticleList.size(); i++){
+	    double w = mapParticleList.get(i).getWeight();
+	    mapParticleList.get(i).setWeight(-1 * Math.log( Math.exp(-1*w) / sum ));
+	}
     }
 
     // resample particles
@@ -459,7 +481,8 @@ public class Localization implements NodeMain{
                 // Duplicate the chosen particle at index with noise.
                 double newWeight = -1 * Math.log((1-totalProb) / MAX_PARTICLES);
                 newParticleList.add(
-                    new MapParticle(mapParticleList.get(j), newWeight, index, RESAMPLING_NOISE));
+				    // the below statement used to have RESAMPLING_NOISE
+                    new MapParticle(mapParticleList.get(j), newWeight, index, 0));
                 index++;
                 if (index >= MAX_PARTICLES * RESAMPLING_FRACTION) break;
 	    }

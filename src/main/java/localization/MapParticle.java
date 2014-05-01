@@ -145,7 +145,7 @@ public class MapParticle implements Cloneable{
             }
             */
 	}
-	weight = weight/1.25 + logprob;
+	weight = weight/1.0 + logprob;
 	//System.out.println("\t Particle " + id + ", weight: " + weight + ", delta: " + logprob);
     }
 
