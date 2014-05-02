@@ -161,11 +161,11 @@ public class MapParticle implements Cloneable{
     public synchronized void fiducialSensorUpdate(double range, double bearing, int top, int bottom){
 	double[] predicted = map.predictFiducials(x, y, theta, top, bottom);
 	double logprob = 0;
-	if(predicted[1] != -1 && range < MAX_FIDUCIAL_RANGE && bearing < MAX_FIDUCIAL_BEARING){
+	if(predicted[0] != -1 && range < MAX_FIDUCIAL_RANGE && Math.abs(bearing) < MAX_FIDUCIAL_BEARING){
 	    logprob += likelihood(range, predicted[0], FIDUCIAL_RANGE_VARIANCE);
 	    logprob += likelihood(bearing, predicted[1], FIDUCIAL_BEARING_VARIANCE);
 	}
-	else if(predicted[1] != -2) // -2 corresponds to invalid fiducial not in map sent
+	else if(predicted[0] != -2) // -2 corresponds to invalid fiducial not in map sent
 	    logprob += -1 * Math.log(PROBABILITY_OF_FALSE_FIDUCIAL);
     	weight = weight/1.0 + logprob;
 	//System.out.println("\t Particle " + id + ", weight: " + weight + ", delta: " + logprob);

@@ -145,7 +145,7 @@ public class Localization implements NodeMain{
             @Override
             public void onNewMessage(FiducialMsg msg) {
                 if(state_initialized)
-		    fiducialSensorUpdate(msg);
+                    fiducialSensorUpdate(msg);
             }
         });
 
@@ -333,7 +333,7 @@ public class Localization implements NodeMain{
     // performs sensor updates based on fiducial observation
     // updates the particle list, doesn't return anything
     public synchronized void fiducialSensorUpdate(FiducialMsg msg){
-	/*if(Math.abs(msg.getTime() - curr_time) < 50){
+	if(Math.abs(msg.getTime() - curr_time) < 50){
 	    counter.incrementAndGet(); // add one before doing updates as a chunk
 
 	    motionUpdate();
@@ -361,13 +361,13 @@ public class Localization implements NodeMain{
 
 	    counter.decrementAndGet(); // decrement after finishing all updates
 	}else{
-	    System.out.println("T\nT\nT\nDIFF TOO BIG! IGNORING FIDUCIAL UPDATE!!\nT\nT\nT");
+	    System.out.println("T\nT\nT\nDIFF TOO BIG! IGNORING SONAR UPDATE!!\nT\nT\nT");
 	}
 
         resample();
 
         publishMap();
-        drawParticleCloud();*/
+        drawParticleCloud();
     }
 
     // performs motion updates based on odometry for all particles

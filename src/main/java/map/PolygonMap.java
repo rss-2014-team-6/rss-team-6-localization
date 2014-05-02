@@ -117,7 +117,7 @@ public class PolygonMap implements java.io.Serializable{
 	    parse(mapFile);
 	fiducials.put(new Point2D.Double(3.0, 4.0), new Point2D.Double(.96, -.4953));
 	fiducials.put(new Point2D.Double(1.0, 3.0), new Point2D.Double(2.27, 2.33));
-	fiducials.put(new Point2D.Double(1.0, 3.0), new Point2D.Double(-.6096, 3.17));
+	fiducials.put(new Point2D.Double(2.0, 4.0), new Point2D.Double(-.6096, 3.17));
     }
 
 
@@ -138,7 +138,7 @@ public class PolygonMap implements java.io.Serializable{
 	rand = new Random();
 	fiducials.put(new Point2D.Double(3.0, 4.0), new Point2D.Double(.96, -.4953));
 	fiducials.put(new Point2D.Double(1.0, 3.0), new Point2D.Double(2.27, 2.33));
-	fiducials.put(new Point2D.Double(1.0, 3.0), new Point2D.Double(-.6096, 3.17));
+	fiducials.put(new Point2D.Double(2.0, 4.0), new Point2D.Double(-.6096, 3.17));
     }
 
     public PolygonMap(PolygonMap m){
@@ -225,9 +225,9 @@ public class PolygonMap implements java.io.Serializable{
 	Point2D.Double loc = fiducials.get(id);
 	Point2D.Double rel = globalToLocal(x, y, theta, loc);
 	double[] rtrn = new double[2];
-	rtrn[0] = Math.atan2(rel.getX(), rel.getY());
+	rtrn[0] = -1 * Math.atan2(rel.getX(), rel.getY()); // Bearing uses clockwise as pos theta
 	rtrn[1] = Math.sqrt(Math.pow(rel.getX(), 2) + Math.pow(rel.getY(), 2));
-	if(rtrn[1] > MAX_FIDUCIAL_RANGE || rtrn[0] > MAX_FIDUCIAL_BEARING){
+	if(rtrn[1] > MAX_FIDUCIAL_RANGE || Math.abs(rtrn[0]) > MAX_FIDUCIAL_BEARING){
 	    double[] r = {-1, -1};
 	    return r;
 	}
@@ -238,7 +238,7 @@ public class PolygonMap implements java.io.Serializable{
 	double xval = loc.getX() - x;
 	double yval = loc.getY() - y;
 	double xpos = xval * Math.cos(theta) + yval * Math.sin(theta);
-	double ypos = -yval * Math.sin(theta) + xval * Math.cos(theta);
+	double ypos = -xval * Math.sin(theta) + yval * Math.cos(theta);
 	return new Point2D.Double(xpos, ypos);
     }
 
