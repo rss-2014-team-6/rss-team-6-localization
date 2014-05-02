@@ -151,7 +151,9 @@ public class MapParticle implements Cloneable{
             */
 	}
 	weight = weight/1.0 + logprob;
-	//System.out.println("\t Particle " + id + ", weight: " + weight + ", delta: " + logprob);
+	
+	if(((Double)weight) == Double.POSITIVE_INFINITY)
+	    System.out.println("\tINFINITY! in Sonar: Particle " + id + ", weight: " + weight + ", delta: " + logprob);
     }
 
     // performs a sensor update for this particle for fiducialss
@@ -169,6 +171,10 @@ public class MapParticle implements Cloneable{
 	    logprob += -1 * Math.log(PROBABILITY_OF_FALSE_FIDUCIAL);
     	weight = weight/1.0 + logprob;
 	//System.out.println("\t Particle " + id + ", weight: " + weight + ", delta: " + logprob);
+	
+	if(((Double)weight) == Double.POSITIVE_INFINITY)
+	    System.out.println("\tINFINITY! in fiducial: Particle " + id + ", weight: " + weight + ", delta: " + logprob);
+
     }
 
 
@@ -211,6 +217,8 @@ public class MapParticle implements Cloneable{
     // set the weight -- used for normalization
     public synchronized void setWeight(double w){
 	weight = w;
+	if(((Double)weight) == Double.POSITIVE_INFINITY)
+	    System.out.println("\tINFINITY! in set weight: Particle " + id + ", weight: " + weight);
     }
 
     // get the current map estimate for this particle
