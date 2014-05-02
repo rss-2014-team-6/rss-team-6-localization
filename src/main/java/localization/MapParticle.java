@@ -27,16 +27,18 @@ public class MapParticle implements Cloneable{
     private final double SONAR_VARIANCE = .2;
     private final double X_VARIANCE = .001;
     private final double Y_VARIANCE = .001;
-    private final double THETA_VARIANCE = .1; // TEMP: was .03
+    private final double THETA_VARIANCE = .03; // TEMP: was .03
     private final double MOTION_THRESHOLD = .001;
 
     private final double PROBABILITY_OF_BUMP_IF_IN_POSITION = .9;
     private final double PROBABILITY_OF_BUMP_IF_NOT_IN_POSITION = .02;
     private final double PROBABILITY_OF_FALSE_SONAR = .0001; //pulled out of a hat!
 
-    private final double PROBABILITY_OF_FALSE_FIDUCIAL = .00001; // pulled out of a bigger hat!
-    private final double FIDUCIAL_BEARING_VARIANCE = .1;
-    private final double FIDUCIAL_RANGE_VARIANCE = .2;
+    private final double PROBABILITY_OF_FALSE_FIDUCIAL = .0000001; // pulled out of a bigger hat!
+    private final double FIDUCIAL_BEARING_VARIANCE = .05;
+    private final double FIDUCIAL_RANGE_VARIANCE = .1;
+    private double MAX_FIDUCIAL_RANGE = 1.5;
+    private double MAX_FIDUCIAL_BEARING = .35;
 
     private final double SONAR_MAX_DIST = 1.2; //check for real value
     private final double SONAR_MIN_DIST = .20;
@@ -71,7 +73,7 @@ public class MapParticle implements Cloneable{
 	// all particles start off with the same weight
 	this.weight = weight;
 	this.id = id;
-	//System.out.println("MAP PARTICLE " + id + ": x: " + this.x + ", y: " + this.y);
+	System.out.println("MAP PARTICLE " + id + ": x: " + this.x + ", y: " + this.y);
    }
 
     /**
@@ -159,11 +161,11 @@ public class MapParticle implements Cloneable{
     public synchronized void fiducialSensorUpdate(double range, double bearing, int top, int bottom){
 	double[] predicted = map.predictFiducials(x, y, theta, top, bottom);
 	double logprob = 0;
-	if(predicted[1] != -1){
+	if(predicted[1] != -1 && range < MAX_FIDUCIAL_RANGE && bearing < MAX_FIDUCIAL_BEARING){
 	    logprob += likelihood(range, predicted[0], FIDUCIAL_RANGE_VARIANCE);
 	    logprob += likelihood(bearing, predicted[1], FIDUCIAL_BEARING_VARIANCE);
 	}
-	else
+	else if(predicted[1] != -2) // -2 corresponds to invalid fiducial not in map sent
 	    logprob += -1 * Math.log(PROBABILITY_OF_FALSE_FIDUCIAL);
     	weight = weight/1.0 + logprob;
 	//System.out.println("\t Particle " + id + ", weight: " + weight + ", delta: " + logprob);

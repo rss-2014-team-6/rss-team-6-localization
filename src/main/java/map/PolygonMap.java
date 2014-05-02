@@ -69,6 +69,9 @@ public class PolygonMap implements java.io.Serializable{
     private double ROBOT_REAL_RADIUS = 0.26;
     private double ROBOT_SOFT_RADIUS = 0.2;
 
+    private double MAX_FIDUCIAL_RANGE = 1.5;
+    private double MAX_FIDUCIAL_BEARING = .35;
+
     // The obstacles (does not include the world boundary).</p>
     public LinkedList<PolygonObstacle> obstacles =
 	new LinkedList<PolygonObstacle>();
@@ -215,11 +218,19 @@ public class PolygonMap implements java.io.Serializable{
 
     public double[] predictFiducials(double x, double y, double theta, int top, int bottom){
 	Point2D.Double id = new Point2D.Double((double)top, (double)bottom);
+	if(fiducials.get(id) == null){
+	    double[] r = {-2, -2};
+	    return r;
+	}
 	Point2D.Double loc = fiducials.get(id);
 	Point2D.Double rel = globalToLocal(x, y, theta, loc);
 	double[] rtrn = new double[2];
 	rtrn[0] = Math.atan2(rel.getX(), rel.getY());
 	rtrn[1] = Math.sqrt(Math.pow(rel.getX(), 2) + Math.pow(rel.getY(), 2));
+	if(rtrn[1] > MAX_FIDUCIAL_RANGE || rtrn[0] > MAX_FIDUCIAL_BEARING){
+	    double[] r = {-1, -1};
+	    return r;
+	}
 	return rtrn;
     }
 

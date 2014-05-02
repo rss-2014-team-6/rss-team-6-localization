@@ -61,7 +61,7 @@ public class Localization implements NodeMain{
 
     protected ArrayList<MapParticle> mapParticleList = new ArrayList<MapParticle>();
 
-    protected static final int MAX_PARTICLES = 2000;
+    protected static final int MAX_PARTICLES = 1000;
     protected static final double CONFIDENCE_THRESH = 0.30;
 
     protected boolean RESAMPLING = true;
@@ -140,7 +140,7 @@ public class Localization implements NodeMain{
         });
 
 
-	fidSub = node.newSubscriber("/vis/Fiducial", "rss_msgs/FiducialMsg");
+	fidSub = node.newSubscriber("/vision/FiducialLocation", "rss_msgs/FiducialMsg");
 	fidSub.addMessageListener(new MessageListener<FiducialMsg>() {
             @Override
             public void onNewMessage(FiducialMsg msg) {
@@ -223,6 +223,8 @@ public class Localization implements NodeMain{
         MapParticle bestParticle = null;
         for (MapParticle particle : mapParticleList) {
             double weight = particle.getWeight();
+	    if(particle.getID() == 100)
+		System.out.println("ID: " + particle.getID() + " wt: " + weight);
             if (weight < minWeight) {
                 minWeight = particle.getWeight();
                 bestParticle = particle;
@@ -244,6 +246,10 @@ public class Localization implements NodeMain{
             System.out.println("Particle is good conf");
         }
         // TEST
+
+	System.out.println("Best particle: " + bestParticle);
+	System.out.println("Mapparticlelist size: " + mapParticleList.size());
+
         double[] predicted = bestParticle.getMap().predictSonars(
             bestParticle.getX(), bestParticle.getY(), bestParticle.getTheta());
         System.out.println("Predicted vals: " + predicted[0] + ", " + predicted[1] + ", " + predicted[2] + ", " + predicted[3]);
@@ -327,7 +333,7 @@ public class Localization implements NodeMain{
     // performs sensor updates based on fiducial observation
     // updates the particle list, doesn't return anything
     public synchronized void fiducialSensorUpdate(FiducialMsg msg){
-	if(Math.abs(msg.getTime() - curr_time) < 50){
+	/*if(Math.abs(msg.getTime() - curr_time) < 50){
 	    counter.incrementAndGet(); // add one before doing updates as a chunk
 
 	    motionUpdate();
@@ -355,13 +361,13 @@ public class Localization implements NodeMain{
 
 	    counter.decrementAndGet(); // decrement after finishing all updates
 	}else{
-	    System.out.println("T\nT\nT\nDIFF TOO BIG! IGNORING SONAR UPDATE!!\nT\nT\nT");
+	    System.out.println("T\nT\nT\nDIFF TOO BIG! IGNORING FIDUCIAL UPDATE!!\nT\nT\nT");
 	}
 
         resample();
 
         publishMap();
-        drawParticleCloud();
+        drawParticleCloud();*/
     }
 
     // performs motion updates based on odometry for all particles
