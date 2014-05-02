@@ -34,7 +34,7 @@ public class MapParticle implements Cloneable{
     private final double PROBABILITY_OF_BUMP_IF_NOT_IN_POSITION = .02;
     private final double PROBABILITY_OF_FALSE_SONAR = .0001; //pulled out of a hat!
 
-    private final double PROBABILITY_OF_FALSE_FIDUCIAL = .0000001; // pulled out of a bigger hat!
+    private final double PROBABILITY_OF_FALSE_FIDUCIAL = .0001; // pulled out of a bigger hat!
     private final double FIDUCIAL_BEARING_VARIANCE = .05;
     private final double FIDUCIAL_RANGE_VARIANCE = .1;
     private double MAX_FIDUCIAL_RANGE = 1.5;

@@ -225,9 +225,9 @@ public class PolygonMap implements java.io.Serializable{
 	Point2D.Double loc = fiducials.get(id);
 	Point2D.Double rel = globalToLocal(x, y, theta, loc);
 	double[] rtrn = new double[2];
-	rtrn[0] = -1 * Math.atan2(rel.getX(), rel.getY()); // Bearing uses clockwise as pos theta
-	rtrn[1] = Math.sqrt(Math.pow(rel.getX(), 2) + Math.pow(rel.getY(), 2));
-	if(rtrn[1] > MAX_FIDUCIAL_RANGE || Math.abs(rtrn[0]) > MAX_FIDUCIAL_BEARING){
+	rtrn[1] = -1 * Math.atan2(rel.getX(), rel.getY()); // Bearing uses clockwise as pos theta
+	rtrn[0] = Math.sqrt(Math.pow(rel.getX(), 2) + Math.pow(rel.getY(), 2));
+	if(rtrn[0] > MAX_FIDUCIAL_RANGE || Math.abs(rtrn[1]) > MAX_FIDUCIAL_BEARING){
 	    double[] r = {-1, -1};
 	    return r;
 	}
