@@ -654,4 +654,8 @@ public class PolygonMap implements java.io.Serializable{
 
 	return sb.toString();
     }
+
+    public HashMap<Point2D.Double, Point2D.Double> getFiducials() {
+        return fiducials;
+    }
 }
