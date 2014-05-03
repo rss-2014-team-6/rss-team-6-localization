@@ -135,7 +135,7 @@ public class Localization implements NodeMain{
             public void onNewMessage(SonarMsg msg) {
                 System.out.println("Sonar msg, init: " + state_initialized);
                 if(state_initialized)
-		    sonarSensorUpdate(msg);
+                    sonarSensorUpdate(msg);
             }
         });
 
