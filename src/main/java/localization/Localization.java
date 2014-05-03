@@ -106,6 +106,8 @@ public class Localization implements NodeMain{
 
     ExecutorService threadpool;
 
+    private final double MAX_ALLOWABLE_WEIGHT = 500; // pulled out of a hat!!
+
     @Override
     public synchronized void onStart(ConnectedNode node) {
      
@@ -430,7 +432,7 @@ public class Localization implements NodeMain{
      * curr_theta, and curr_time to be set.
      */
     private void updateResamplingCount() {
-        final double THETA_COEFF = 5.0;
+        /*final double THETA_COEFF = 5.0;
         final double DIST_COEFF = 1.0;
         final double TIME_COEFF = 0.001;
         double deltaX = curr_x - start_x;
@@ -442,7 +444,16 @@ public class Localization implements NodeMain{
             DIST_COEFF * Math.sqrt(Math.pow(curr_x-start_x, 2)
                                    + Math.pow(curr_y-start_y, 2)) +
             THETA_COEFF * Math.abs(deltaTheta) +
-            TIME_COEFF * deltaTime;
+            TIME_COEFF * deltaTime;*/
+
+	double maxWeight = 0;
+        for(MapParticle p : mapParticleList) {
+            if (p.getWeight() > maxWeight) {
+                maxWeight = p.getWeight();
+            }
+        }
+	if(maxWeight > MAX_ALLOWABLE_WEIGHT)
+	    resamplingCount = RESAMPLING_FREQUENCY+1; // don't show Tej this code
     }
     
     // "renormalize" particles, such that best particle has prob 1
