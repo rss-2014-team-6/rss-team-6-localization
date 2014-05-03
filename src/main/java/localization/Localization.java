@@ -227,7 +227,7 @@ public class Localization implements NodeMain{
 	    //if(particle.getID() == 100)
 	    //	System.out.println("ID: " + particle.getID() + " wt: " + weight);
             if (weight < minWeight) {
-                minWeight = particle.getWeight();
+                minWeight = weight;
                 bestParticle = particle;
             }
         }
@@ -487,7 +487,7 @@ public class Localization implements NodeMain{
 
 	    //the following two lines should be equivalent...
 	    //mapParticleList.get(i).setWeight(-1 * Math.log( Math.exp(-1*w) / sum ));
-	    mapParticleList.get(i).setWeight(w + -1 * Math.log( 1 / sum ));
+	    mapParticleList.get(i).setWeight(w + Math.log(sum));
 	}
     }
 
