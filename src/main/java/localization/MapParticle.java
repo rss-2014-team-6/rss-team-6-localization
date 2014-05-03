@@ -24,31 +24,31 @@ public class MapParticle implements Cloneable{
 
     // variance values -- should determine from experimentation
     // numbers are pulled out of a hat for now
-    private final double SONAR_VARIANCE = .2;
-    private final double X_VARIANCE = .001;
-    private final double Y_VARIANCE = .001;
-    private final double THETA_VARIANCE = .03; // TEMP: was .03
-    private final double MOTION_THRESHOLD = .001;
+    private static final double SONAR_VARIANCE = 1.0;
+    private static final double X_VARIANCE = .001;
+    private static final double Y_VARIANCE = .001;
+    private static final double THETA_VARIANCE = .03; // TEMP: was .03
+    private static final double MOTION_THRESHOLD = .001;
 
-    private final double PROBABILITY_OF_BUMP_IF_IN_POSITION = .9;
-    private final double PROBABILITY_OF_BUMP_IF_NOT_IN_POSITION = .02;
-    private final double PROBABILITY_OF_FALSE_SONAR = .0001; //pulled out of a hat!
+    private static final double PROBABILITY_OF_BUMP_IF_IN_POSITION = .9;
+    private static final double PROBABILITY_OF_BUMP_IF_NOT_IN_POSITION = .02;
+    private static final double PROBABILITY_OF_FALSE_SONAR = .01; //pulled out of a hat!
 
-    private final double PROBABILITY_OF_FALSE_FIDUCIAL = .0001; // pulled out of a bigger hat!
-    private final double FIDUCIAL_BEARING_VARIANCE = .05;
-    private final double FIDUCIAL_RANGE_VARIANCE = .1;
-    private double MAX_FIDUCIAL_RANGE = 1.5;
-    private double MAX_FIDUCIAL_BEARING = .35;
+    private static final double PROBABILITY_OF_FALSE_FIDUCIAL = .0001; // pulled out of a bigger hat!
+    private static final double FIDUCIAL_BEARING_VARIANCE = .05;
+    private static final double FIDUCIAL_RANGE_VARIANCE = .5;
+    private static final double MAX_FIDUCIAL_RANGE = 1.5;
+    private static final double MAX_FIDUCIAL_BEARING = .35;
 
-    private final double SONAR_MAX_DIST = 1.2; //check for real value
-    private final double SONAR_MIN_DIST = .20;
+    private static final double SONAR_MAX_DIST = 1.2; //check for real value
+    private static final double SONAR_MIN_DIST = .20;
 
-    private final double OUT_OF_BOUND_PENALTY = .001; 
+    private static final double OUT_OF_BOUND_PENALTY = .001; 
 
     // threshold for adding new obstacle-points to the map
-    private final double BUILD_THRESHOLD = .5;
+    private static final double BUILD_THRESHOLD = .5;
     // probability for whether we actually build the new obstacle
-    private final double BUILD_PROBABILITY = .8;
+    private static final double BUILD_PROBABILITY = .8;
 
     // constructor
     // takes in starting map file, weight for new particle, and id
