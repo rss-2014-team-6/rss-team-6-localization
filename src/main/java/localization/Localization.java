@@ -61,19 +61,19 @@ public class Localization implements NodeMain{
 
     protected ArrayList<MapParticle> mapParticleList = new ArrayList<MapParticle>();
 
-    protected static final int MAX_PARTICLES = 4000;
+    protected static final int MAX_PARTICLES = 2000;
     protected static final double CONFIDENCE_THRESH = 0.30;
 
     protected boolean RESAMPLING = true;
     // Heuristic to track roughly how much variance in particle 
     // position has been introduced by motion.
     protected double resamplingCount = 0.0;
-    protected double RESAMPLING_FREQUENCY = 300; 
+    protected double RESAMPLING_FREQUENCY = 10; 
     /**
      * How many of the resampled particles are chosen based on
      * existing weights (the rest are resampled new).
      */
-    protected double RESAMPLING_FRACTION = .5;
+    protected double RESAMPLING_FRACTION = 1.0;
     /**
      * Particles above this probability and kept with their original
      * weight. Rest are resampled.
@@ -252,7 +252,9 @@ public class Localization implements NodeMain{
         double[] predicted = bestParticle.getMap().predictSonars(
             bestParticle.getX(), bestParticle.getY(), bestParticle.getTheta());
         //System.out.println("Predicted vals: " + predicted[0] + ", " + predicted[1] + ", " + predicted[2] + ", " + predicted[3]);
-	System.out.println("Particle ID: " + bestParticle.getID() + ", weight: " + minWeight + ", prob: " + Math.exp(-1*minWeight) + 
+	System.out.println("Particle ID: " + bestParticle.getID() + ", weight: " + minWeight + ", prob: " + Math.exp(-1*minWeight) +
+                           "\n fidWeight: " + bestParticle.getFidWeight() +", sonarWeight: " + bestParticle.getSonarWeight() + 
+                           "\n baseWeight: " + bestParticle.getBaseWeight() + ", penaltyWeight: " + bestParticle.getPenaltyWeight() + 
                            "\n totalweight: " + totalWeight + ", conf: " + confidence
 			   + "\n pos: " + bestParticle.getPosition());
 	/*if(((Double)totalWeight).isNaN()){
@@ -452,47 +454,82 @@ public class Localization implements NodeMain{
                 maxWeight = p.getWeight();
             }
         }
-	if(maxWeight > MAX_ALLOWABLE_WEIGHT)
+        /*
+	if(maxWeight > MAX_ALLOWABLE_WEIGHT) {
+            System.out.println("Max weight exceeded.");
 	    resamplingCount = RESAMPLING_FREQUENCY+1; // don't show Tej this code
+        }
+        */
     }
     
     // "renormalize" particles, such that best particle has prob 1
     // this induces error -- since we need to represent weights as actual probabilities -- so
     // we avoid calling this unless we need them to resample
     private synchronized void renormalize(){
-	double sum = 0;
 
 	while(counter.get() > 0);
 
         // First just scale probabilities such that largest is 1
         // (in terms of log, this is just subtracting the minweight)
-        double minWeight = Double.POSITIVE_INFINITY;
+        double minFidWeight = Double.POSITIVE_INFINITY;
+        double minSonarWeight = Double.POSITIVE_INFINITY;
+        double minBumpWeight = Double.POSITIVE_INFINITY;
         for(MapParticle p : mapParticleList) {
-            if (p.getWeight() < minWeight) {
-                minWeight = p.getWeight();
+            if (p.getFidWeight() < minFidWeight) {
+                minFidWeight = p.getFidWeight();
+            }
+            if (p.getSonarWeight() < minSonarWeight) {
+                minSonarWeight = p.getSonarWeight();
+            }
+            if (p.getBumpWeight() < minBumpWeight) {
+                minBumpWeight = p.getBumpWeight();
             }
         }
 	//if(minWeight == Double.POSITIVE_INFINITY)
 	//    System.out.println("X\nX\nX\n POSITIVE INFINITY CURSE YOU TEJ \nX\nX\nX");
 
+        double fidSum = 0;
+        double sonarSum = 0;
+        double bumpSum = 0;
 	for(MapParticle p : mapParticleList) {
-            double w = p.getWeight();
-            p.setWeight(w - minWeight);
-	    sum += Math.exp(-1*p.getWeight());
+            double fw = p.getFidWeight();
+            double sw = p.getSonarWeight();
+            double bw = p.getBumpWeight();
+            p.setFidWeight(fw - minFidWeight + 0.1);
+            p.setSonarWeight(sw - minSonarWeight + 0.1);
+            p.setBumpWeight(bw - minBumpWeight + 0.1);
+            // fidSum += Math.exp(-1*p.getFidWeight());
+            // sonarSum += Math.exp(-1*p.getSonarWeight());
+            // bumpSum += Math.exp(-1*p.getBumpWeight());
         }
 
-        if (sum == 0) {
-            throw new RuntimeException("Zero sum in renormalizing");
-        }
-
-	for(int i=0; i<mapParticleList.size(); i++){
-	    double w = mapParticleList.get(i).getWeight();
-	    System.out.println("ID: " + mapParticleList.get(i).getID() + " sum: " + sum + " new wt: " + w + " prob: " + (w + -1 * Math.log( 1 / sum )));
+        /*
+	for(MapParticle p : mapParticleList){
+	    double fw = p.getFidWeight();
+            double sw = p.getSonarWeight();
+            double bw = p.getBumpWeight();
+	    //System.out.println("ID: " + mapParticleList.get(i).getID() + " sum: " + sum + " new wt: " + w + " prob: " + (w + -1 * Math.log( 1 / sum )));
 
 	    //the following two lines should be equivalent...
-	    //mapParticleList.get(i).setWeight(-1 * Math.log( Math.exp(-1*w) / sum ));
-	    mapParticleList.get(i).setWeight(w + Math.log(sum));
+	    //p.setWeight(-1 * Math.log( Math.exp(-1*fw) / fidSum ));
+	    p.setWeight(fw + Math.log(fidSum));
+            p.setWeight(sw + Math.log(sonarSum));
+            p.setWeight(bw + Math.log(bumpSum));
 	}
+        */
+
+        // Overall renormalization
+        double sum = 0;
+        for(MapParticle p : mapParticleList) {
+            double w = p.getWeight();
+            if (w <= MAX_ALLOWABLE_WEIGHT) {
+                sum += Math.exp(-1*p.getWeight());
+            }
+        }
+        for(MapParticle p : mapParticleList) {
+            double w = p.getWeight();
+            p.setWeight(w + Math.log(sum));
+        }
     }
 
     // resample particles
@@ -504,6 +541,13 @@ public class Localization implements NodeMain{
 	    resamplingCount = 0.0;
 
 	    ArrayList<MapParticle> newParticleList = new ArrayList<MapParticle>();
+            
+            // DEBUG
+            double sum = 0;
+            for(MapParticle p : mapParticleList) {
+                sum += Math.exp(-1*p.getWeight());
+            }
+            System.out.println("Prob sum: " + sum);
 
             int index = 0;
             double totalProb = 0;
@@ -515,8 +559,8 @@ public class Localization implements NodeMain{
                     totalProb += Math.exp(-1*weight);
                 }
             }
-            int kept = index+1;
-            System.out.println(kept + " total particles kept.");
+            int kept = index;
+            System.out.println(kept + " total particles kept. Total prob: " + totalProb);
 	    // some fraction of the particles are resampled, others are draw new
 	    for(int i = 0; i < (MAX_PARTICLES-kept); i++) {
                 double val = rand.nextDouble();
@@ -536,7 +580,7 @@ public class Localization implements NodeMain{
                 double newWeight = -1 * Math.log((1-totalProb) / MAX_PARTICLES);
                 newParticleList.add(
 				    // the below statement used to have RESAMPLING_NOISE
-                    new MapParticle(mapParticleList.get(j), newWeight, index, 0));
+                    new MapParticle(mapParticleList.get(j), newWeight, index, RESAMPLING_NOISE));
                 index++;
                 if (index >= MAX_PARTICLES * RESAMPLING_FRACTION) break;
 	    }
@@ -545,8 +589,14 @@ public class Localization implements NodeMain{
 
 	    // the rest of the particles are made new
 	    for(int i = index; i<MAX_PARTICLES; i++){
-                double newWeight = -1 * Math.log((1-totalProb) / MAX_PARTICLES);
-		newParticleList.add(new MapParticle(mapFile, newWeight, i));
+                double newOverallWeight = -1 * Math.log((1-totalProb) / MAX_PARTICLES);
+                double newComponentWeight = -1 * Math.log(1.0 / MAX_PARTICLES);
+                MapParticle newPart = new MapParticle(
+                    mapFile, newComponentWeight,
+                    newComponentWeight, newComponentWeight,
+                    newComponentWeight, newComponentWeight, i);
+                newPart.setWeight(newOverallWeight);
+		newParticleList.add(newPart);
 	    }
 
             // Replace the old map particle list

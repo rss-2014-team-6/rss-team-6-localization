@@ -40,7 +40,7 @@ public class MapParticle implements Cloneable{
 
     private static final double PROBABILITY_OF_FALSE_FIDUCIAL = .000001; // pulled out of a bigger hat!
     private static final double FIDUCIAL_BEARING_VARIANCE = .05;
-    private static final double FIDUCIAL_RANGE_VARIANCE = .5;
+    private static final double FIDUCIAL_RANGE_VARIANCE = .1;
     private static final double MAX_FIDUCIAL_RANGE = 1.5;
     private static final double MAX_FIDUCIAL_BEARING = .35;
 
@@ -49,9 +49,9 @@ public class MapParticle implements Cloneable{
 
     private static final double OUT_OF_BOUND_PENALTY = .001; 
 
-    private static final double FID_COEFF = 0.5;
-    private static final double SONAR_COEFF = 0.3;
-    private static final double BUMP_COEFF = 0.2;
+    private static final double FID_COEFF = 0.8;
+    private static final double SONAR_COEFF = 0.2;
+    private static final double BUMP_COEFF = 0.0;
 
     // threshold for adding new obstacle-points to the map
     private static final double BUILD_THRESHOLD = .5;
@@ -60,7 +60,9 @@ public class MapParticle implements Cloneable{
 
     // constructor
     // takes in starting map file, weight for new particle, and id
-    public MapParticle(String startMapFile, double weight, int id) {
+    public MapParticle(String startMapFile, double baseWeight,
+                       double fidWeight, double bumpWeight, double sonarWeight,
+                       double penaltyWeight, int id) {
 	try{
 	    this.map = new PolygonMap(startMapFile);
 	} catch (IOException e){
@@ -79,14 +81,18 @@ public class MapParticle implements Cloneable{
 	this.y = ty;
 	this.theta = rand.nextDouble() * Math.PI * 2;
 	// all particles start off with the same weight
-	this.baseWeight = weight;
-        this.fidWeight = 0;
-        this.bumpWeight = 0;
-        this.sonarWeight = 0;
-        this.penaltyWeight = 0;
+	this.baseWeight = baseWeight;
+        this.fidWeight = fidWeight;
+        this.bumpWeight = bumpWeight;
+        this.sonarWeight = sonarWeight;
+        this.penaltyWeight = penaltyWeight;
 	this.id = id;
 	//System.out.println("MAP PARTICLE " + id + ": x: " + this.x + ", y: " + this.y);
    }
+
+    public MapParticle(String startMapFile, double baseWeight, int id) {
+        this(startMapFile, baseWeight, 0, 0, 0, 0, id);
+    }
 
     /**
      * Duplication constructor without noise.
@@ -98,18 +104,19 @@ public class MapParticle implements Cloneable{
     /**
      * Duplication constructor. Duplicates the particle using the given new weight
      * and id. Adds error randomly selected from [-posNoise/2,posNoise/2) to each coord.
+     * If clearWeights is true, resets fidWeight, sonarWeight, etc.
      */
     public MapParticle(MapParticle mp, double weight, int id, double posNoise){
+	rand = new Random();
 	this.baseWeight = mp.baseWeight;
         this.fidWeight = mp.fidWeight;
         this.sonarWeight = mp.sonarWeight;
         this.bumpWeight = mp.bumpWeight;
         this.penaltyWeight = 0;
         this.setWeight(weight);
-	this.x = mp.getX() + Math.random()*posNoise - posNoise/2.0;
-	this.y = mp.getY() + Math.random()*posNoise - posNoise/2.0;
-	this.theta = mp.getTheta();
-	rand = new Random();
+	this.x = mp.getX() + rand.nextGaussian()*posNoise;
+	this.y = mp.getY() + rand.nextGaussian()*posNoise;
+	this.theta = mp.getTheta() + rand.nextGaussian()*posNoise;
 	this.id = id;
 	this.map = new PolygonMap(mp.getMap());
     }
@@ -243,6 +250,8 @@ public class MapParticle implements Cloneable{
     }
 
     // set the weight -- used for normalization
+    // if clear is true, then we should reset fid, sonar, and bump weights
+    // otherwise, keep them
     public synchronized void setWeight(double w){
         // Divide up remainder of w - baseWeight among
         // fid, sonar, and bump in the correct fractions
@@ -277,6 +286,31 @@ public class MapParticle implements Cloneable{
         
 	//if(((Double)weight) == Double.POSITIVE_INFINITY)
 	//    System.out.println("\tINFINITY! in set weight: Particle " + id + ", weight: " + weight);
+    }
+
+    public void setFidWeight(double fidWeight) {
+        this.fidWeight = fidWeight;
+    }
+    public void setSonarWeight(double sonarWeight) {
+        this.sonarWeight = sonarWeight;
+    }
+    public void setBumpWeight(double bumpWeight) {
+        this.bumpWeight = bumpWeight;
+    }
+    public double getFidWeight() {
+        return fidWeight;
+    }
+    public double getSonarWeight() {
+        return sonarWeight;
+    }
+    public double getBumpWeight() {
+        return bumpWeight;
+    }
+    public double getBaseWeight() {
+        return baseWeight;
+    }
+    public double getPenaltyWeight() {
+        return penaltyWeight;
     }
 
     // get the current map estimate for this particle
