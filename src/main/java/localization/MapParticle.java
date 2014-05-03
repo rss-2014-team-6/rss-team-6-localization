@@ -2,6 +2,7 @@ package localization;
 
 import java.awt.geom.Point2D;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.text.ParseException;
 import java.util.Random;
 import java.lang.Math;
@@ -12,9 +13,9 @@ import map.PolygonMap;
 public class MapParticle implements Cloneable{
 
     // TODO: bumpSensorUpdate, fiducialSensorUpdate
-    
-    // we store weights as the negative log in order to get extra precision for low weight particles
-    private double weight;
+
+    // Weight is probability that this particle is 
+    private BigDecimal weight;
     private PolygonMap map;
     private double x;
     private double y;
@@ -30,11 +31,11 @@ public class MapParticle implements Cloneable{
     private static final double THETA_VARIANCE = .03; // TEMP: was .03
     private static final double MOTION_THRESHOLD = .001;
 
-    private static final double PROBABILITY_OF_BUMP_IF_IN_POSITION = .9;
-    private static final double PROBABILITY_OF_BUMP_IF_NOT_IN_POSITION = .02;
-    private static final double PROBABILITY_OF_FALSE_SONAR = .01; //pulled out of a hat!
+    private static final BigDecimal PROBABILITY_OF_BUMP_IF_IN_POSITION = new BigDecimal(.9);
+    private static final BigDecimal PROBABILITY_OF_BUMP_IF_NOT_IN_POSITION = new BigDecimal(.02);
+    private static final BigDecimal PROBABILITY_OF_FALSE_SONAR = new BigDecimal(.01); //pulled out of a hat!
 
-    private static final double PROBABILITY_OF_FALSE_FIDUCIAL = .0001; // pulled out of a bigger hat!
+    private static final BigDecimal PROBABILITY_OF_FALSE_FIDUCIAL = new BigDecimal(.0001); // pulled out of a bigger hat!
     private static final double FIDUCIAL_BEARING_VARIANCE = .05;
     private static final double FIDUCIAL_RANGE_VARIANCE = .5;
     private static final double MAX_FIDUCIAL_RANGE = 1.5;
@@ -43,7 +44,7 @@ public class MapParticle implements Cloneable{
     private static final double SONAR_MAX_DIST = 1.2; //check for real value
     private static final double SONAR_MIN_DIST = .20;
 
-    private static final double OUT_OF_BOUND_PENALTY = .001; 
+    private static final BigDecimal OUT_OF_BOUND_PENALTY = new BigDecimal(.001); 
 
     // threshold for adding new obstacle-points to the map
     private static final double BUILD_THRESHOLD = .5;
@@ -52,7 +53,7 @@ public class MapParticle implements Cloneable{
 
     // constructor
     // takes in starting map file, weight for new particle, and id
-    public MapParticle(String startMapFile, double weight, int id) {
+    public MapParticle(String startMapFile, BigDecimal weight, int id) {
 	try{
 	    this.map = new PolygonMap(startMapFile);
 	} catch (IOException e){
@@ -79,20 +80,22 @@ public class MapParticle implements Cloneable{
     /**
      * Duplication constructor without noise.
      */
-    public MapParticle(MapParticle mp, double weight, int id) {
-        this(mp, weight, id, 0.0);
+    public MapParticle(MapParticle mp, BigDecimal weight, int id) {
+        this(mp, weight, id, 0.0, 0.0);
     }
 
     /**
      * Duplication constructor. Duplicates the particle using the given new weight
-     * and id. Adds error randomly selected from [-posNoise/2,posNoise/2) to each coord.
+     * and id. Adds error randomly selected from a Guassian with stdev posNoise
+     * to each coord and error randomly selected from a Gaussian with stdev
+     * thetaNoise to theta.
      */
-    public MapParticle(MapParticle mp, double weight, int id, double posNoise){
-	this.weight = weight;
-	this.x = mp.getX() + Math.random()*posNoise - posNoise/2.0;
-	this.y = mp.getY() + Math.random()*posNoise - posNoise/2.0;
-	this.theta = mp.getTheta();
+    public MapParticle(MapParticle mp, BigDecimal weight, int id, double posNoise, double thetaNoise){
 	rand = new Random();
+	this.weight = weight;
+	this.x = mp.getX() + rand.nextGaussian()*posNoise;
+	this.y = mp.getY() + rand.nextGaussian()*posNoise;
+	this.theta = mp.getTheta() + rand.nextGaussian()*thetaNoise;
 	this.id = id;
 	this.map = new PolygonMap(mp.getMap());
     }
@@ -108,10 +111,10 @@ public class MapParticle implements Cloneable{
 	// Localization passes in a location where there's a bump
 	
 	if(map.withinBumpThreshold(x, y, theta, bumpID)){
-	    weight += -1 * Math.log(PROBABILITY_OF_BUMP_IF_IN_POSITION);
+	    weight = weight.multiply(PROBABILITY_OF_BUMP_IF_IN_POSITION);
 	}
 	else{
-	    weight += -1 * Math.log(PROBABILITY_OF_BUMP_IF_NOT_IN_POSITION);
+	    weight = weight.multiply(PROBABILITY_OF_BUMP_IF_NOT_IN_POSITION);
 	}
 	
     }
@@ -123,13 +126,13 @@ public class MapParticle implements Cloneable{
     public synchronized void sonarSensorUpdate(double[] sonarMeasurements){
 	double[] predicted = map.predictSonars(x, y, theta);
 	// System.out.println("["+id+"] Predicted vals: " + predicted[0] + ", " + predicted[1] + ", " + predicted[2] + ", " + predicted[3]);
-	double logprob = 0;
+	BigDecimal prob = BigDecimal.ONE;
 	for(int i=0; i<predicted.length; i++){
 	    if(sonarMeasurements[i] > SONAR_MIN_DIST && sonarMeasurements[i] < SONAR_MAX_DIST){
 		if(predicted[i] != -1){
 		    // even if we're building, we still give this particle a hit -- later, as it
 		    // build obstacles, then it won't take future hits if it's consistent
-		    logprob += likelihood(sonarMeasurements[i], predicted[i], SONAR_VARIANCE);
+		    prob = prob.multiply(new BigDecimal(likelihood(sonarMeasurements[i], predicted[i], SONAR_VARIANCE)));
                     /*
 		    if(likelihood(sonarMeasurements[i], predicted[i], SONAR_VARIANCE) < BUILD_THRESHOLD){
 			if(rand.nextDouble() < BUILD_PROBABILITY)
@@ -138,7 +141,7 @@ public class MapParticle implements Cloneable{
                     */
 		}
 		else
-		    logprob += -1 * Math.log(PROBABILITY_OF_FALSE_SONAR);
+		    prob = prob.multiply(PROBABILITY_OF_FALSE_SONAR);
 	    }
             /*
             // Lose probability for missed sonar readings when we should have some
@@ -150,7 +153,7 @@ public class MapParticle implements Cloneable{
             }
             */
 	}
-	weight = weight/1.0 + logprob;
+	weight = weight.multiply(prob);
 	
 	//	if(((Double)weight) == Double.POSITIVE_INFINITY)
 	//  System.out.println("\tINFINITY! in Sonar: Particle " + id + ", weight: " + weight + ", delta: " + logprob);
@@ -162,21 +165,17 @@ public class MapParticle implements Cloneable{
     // eventually, here we'll think about adding new obstacles
     public synchronized void fiducialSensorUpdate(double range, double bearing, int top, int bottom){
 	double[] predicted = map.predictFiducials(x, y, theta, top, bottom);
-	double logprob = 0;
+        BigDecimal prob = BigDecimal.ONE;
 	//if(((Double)weight) == Double.POSITIVE_INFINITY)
 	//    System.out.println("\tINFINITY! in fiducial: Particle " + id + ", starting weight: " + weight + ", delta: " + logprob);
 
 	if(predicted[0] != -1 && predicted[0] != -2 && range < MAX_FIDUCIAL_RANGE && Math.abs(bearing) < MAX_FIDUCIAL_BEARING){
-	    logprob += likelihood(range, predicted[0], FIDUCIAL_RANGE_VARIANCE);
-	    if(((Double)logprob) == Double.POSITIVE_INFINITY)
-		System.out.println("Infinity! range: " + range + " predicted: " + predicted[0]);
-	    logprob += likelihood(bearing, predicted[1], FIDUCIAL_BEARING_VARIANCE);
-	    if(((Double)logprob) == Double.POSITIVE_INFINITY)
-		System.out.println("Infinity! range: " + range + " predicted: " + predicted[1]);
+	    prob = prob.multiply(new BigDecimal(likelihood(range, predicted[0], FIDUCIAL_RANGE_VARIANCE)));
+	    prob = prob.multiply(new BigDecimal(likelihood(bearing, predicted[1], FIDUCIAL_BEARING_VARIANCE)));
 	}
 	else if(predicted[0] != -2) // -2 corresponds to invalid fiducial not in map sent
-	    logprob += -1 * Math.log(PROBABILITY_OF_FALSE_FIDUCIAL);
-    	weight = weight/1.0 + logprob;
+	    prob = prob.multiply(PROBABILITY_OF_FALSE_FIDUCIAL);
+        weight = weight.multiply(prob);
 	//System.out.println("\t Particle " + id + ", weight: " + weight + ", delta: " + logprob);
 	
 	//if(((Double)weight) == Double.POSITIVE_INFINITY)
@@ -213,16 +212,16 @@ public class MapParticle implements Cloneable{
 	}
 
 	if(!map.isValid(x,y))
-	    weight += -1 * Math.log(OUT_OF_BOUND_PENALTY);
+	    weight = weight.multiply(OUT_OF_BOUND_PENALTY);
     }
 
     // returns the weight
-    public double getWeight(){
+    public BigDecimal getWeight(){
 	return weight;
     }
 
     // set the weight -- used for normalization
-    public synchronized void setWeight(double w){
+    public synchronized void setWeight(BigDecimal w){
 	weight = w;
 	//if(((Double)weight) == Double.POSITIVE_INFINITY)
 	//    System.out.println("\tINFINITY! in set weight: Particle " + id + ", weight: " + weight);
@@ -265,7 +264,7 @@ public class MapParticle implements Cloneable{
 
     // finds the likelihood of a Gaussian sample
     // takes in value, mean, variance
-    // returns a negative log probability
+    // returns a probability
     private double likelihood(double value, double mean, double variance){
 	// if this is too slow or something we can switch to having a standard normal distribution and
 	// making the necessary compensations
@@ -277,8 +276,7 @@ public class MapParticle implements Cloneable{
 	// I just added in a multiply by 2 because with the zero mean assumption, it could be just as far away 
 	// on either side.  That shouldn't really affect things, though.
 	double p = 2 * normal.cumulativeProbability(value);
-
-	return -1 * Math.log(p);
+	return p;
     }
 
 

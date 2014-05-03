@@ -29,10 +29,11 @@ import org.ros.message.MessageListener;
 
 import java.lang.Runtime;
 import java.lang.Thread;
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
@@ -106,7 +107,9 @@ public class Localization implements NodeMain{
 
     ExecutorService threadpool;
 
-    private final double MAX_ALLOWABLE_WEIGHT = 500; // pulled out of a hat!!
+    private static final int MAX_SCALE = 1000; // Store up to 1000 decimals
+    private static final BigDecimal MIN_ALLOWABLE_PROB =
+        new BigDecimal(Math.E).pow(-1000, new MathContext(MAX_SCALE)); // Don't allow dropping below e^-1000 prob
 
     @Override
     public synchronized void onStart(ConnectedNode node) {
@@ -179,7 +182,7 @@ public class Localization implements NodeMain{
         final String mapFile = paramTree.getString(node.resolveName("/loc/mapFileName"));
 	globalMapFile = mapFile;
 
-        final double particleWeight = -1 * Math.log(1.0 / MAX_PARTICLES);
+        final BigDecimal particleWeight = BigDecimal.ONE.divide(new BigDecimal(MAX_PARTICLES));
         for(int i=0; i<MAX_PARTICLES; i++){
             mapParticleList.add(new MapParticle(mapFile, particleWeight, i));
         }
@@ -210,7 +213,7 @@ public class Localization implements NodeMain{
             pointData.setX(particle.getX());
             pointData.setY(particle.getY());
             points.add(pointData);
-            weights[i] = particle.getWeight();
+            weights[i] = -1 * Math.log(particle.getWeight().doubleValue());
         }
         GUIParticleCloudMsg cloudMsg = guiCloudPub.newMessage();
         cloudMsg.setPoints(points);
@@ -220,40 +223,39 @@ public class Localization implements NodeMain{
 
     private void publishMap(){
 	// Best weight is the minimum, since we're using negative log
-        double minWeight = Double.POSITIVE_INFINITY;
+        BigDecimal bestProb = new BigDecimal(0);
+        BigDecimal totalProb = new BigDecimal(0);
         MapParticle bestParticle = null;
         for (MapParticle particle : mapParticleList) {
-            double weight = particle.getWeight();
+            BigDecimal weight = particle.getWeight();
 	    //if(particle.getID() == 100)
 	    //	System.out.println("ID: " + particle.getID() + " wt: " + weight);
-            if (weight < minWeight) {
-                minWeight = weight;
+            if (weight.compareTo(bestProb) >= 0) {
+                bestProb = weight;
                 bestParticle = particle;
             }
+            totalProb = totalProb.add(weight);
         }
-        double totalWeight = 0;
-        for (MapParticle particle : mapParticleList) {
-            totalWeight += Math.exp(-1 * (particle.getWeight() - minWeight));
-        }
-        double confidence = 1.0 / totalWeight;
+        BigDecimal confidence = BigDecimal.ONE.divide(totalProb, MAX_SCALE, BigDecimal.ROUND_HALF_DOWN);
         // No particles stand out enough (probably after resampling)
-        if (confidence < CONFIDENCE_THRESH && prevBestParticle != null) {
+        if (confidence.compareTo(new BigDecimal(CONFIDENCE_THRESH)) < 0
+            && prevBestParticle != null) {
             // Go with our previous most confident particle, if there is one
             bestParticle = prevBestParticle;
             //System.out.println("Selecting prev best particle");
         }
-        else if (confidence > CONFIDENCE_THRESH) {
-            prevBestParticle = new MapParticle(bestParticle, minWeight, bestParticle.getID());
+        else if (confidence.compareTo(new BigDecimal(CONFIDENCE_THRESH)) >= 0) {
+            prevBestParticle = new MapParticle(bestParticle, bestProb, bestParticle.getID());
             //System.out.println("Particle is good conf");
         }
         // TEST
 
 
-        double[] predicted = bestParticle.getMap().predictSonars(
-            bestParticle.getX(), bestParticle.getY(), bestParticle.getTheta());
+        // double[] predicted = bestParticle.getMap().predictSonars(
+        //     bestParticle.getX(), bestParticle.getY(), bestParticle.getTheta());
         //System.out.println("Predicted vals: " + predicted[0] + ", " + predicted[1] + ", " + predicted[2] + ", " + predicted[3]);
-	System.out.println("Particle ID: " + bestParticle.getID() + ", weight: " + minWeight + ", prob: " + Math.exp(-1*minWeight) + 
-                           "\n totalweight: " + totalWeight + ", conf: " + confidence
+	System.out.println("Particle ID: " + bestParticle.getID() + ", prob: " + bestProb +
+                           "\n totalprob: " + totalProb + ", conf: " + confidence
 			   + "\n pos: " + bestParticle.getPosition());
 	/*if(((Double)totalWeight).isNaN()){
 	    // for(MapParticle p : mapParticleList)
@@ -446,13 +448,11 @@ public class Localization implements NodeMain{
             THETA_COEFF * Math.abs(deltaTheta) +
             TIME_COEFF * deltaTime;
 
-	double maxWeight = 0;
+        BigDecimal bestProb = new BigDecimal(0);
         for(MapParticle p : mapParticleList) {
-            if (p.getWeight() > maxWeight) {
-                maxWeight = p.getWeight();
-            }
+            bestProb = bestProb.max(p.getWeight());
         }
-	if(maxWeight > MAX_ALLOWABLE_WEIGHT)
+	if(bestProb.compareTo(MIN_ALLOWABLE_PROB) < 0)
 	    resamplingCount = RESAMPLING_FREQUENCY+1; // don't show Tej this code
     }
     
@@ -466,29 +466,16 @@ public class Localization implements NodeMain{
 
         // First just scale probabilities such that largest is 1
         // (in terms of log, this is just subtracting the minweight)
-        double minWeight = Double.POSITIVE_INFINITY;
+        BigDecimal totalProb = new BigDecimal(0);
         for(MapParticle p : mapParticleList) {
-            if (p.getWeight() < minWeight) {
-                minWeight = p.getWeight();
-            }
+            totalProb = totalProb.add(p.getWeight());
         }
 	//if(minWeight == Double.POSITIVE_INFINITY)
 	//    System.out.println("X\nX\nX\n POSITIVE INFINITY CURSE YOU TEJ \nX\nX\nX");
 
 	for(MapParticle p : mapParticleList) {
-            double w = p.getWeight();
-            p.setWeight(w - minWeight);
-	    sum += Math.exp(-1*p.getWeight());
+            p.setWeight(p.getWeight().divide(totalProb, MAX_SCALE, BigDecimal.ROUND_HALF_DOWN));
         }
-
-	for(int i=0; i<mapParticleList.size(); i++){
-	    double w = mapParticleList.get(i).getWeight();
-	    System.out.println("ID: " + mapParticleList.get(i).getID() + " sum: " + sum + " new wt: " + w + " prob: " + (w + -1 * Math.log( 1 / sum )));
-
-	    //the following two lines should be equivalent...
-	    //mapParticleList.get(i).setWeight(-1 * Math.log( Math.exp(-1*w) / sum ));
-	    mapParticleList.get(i).setWeight(w + Math.log(sum));
-	}
     }
 
     // resample particles
@@ -502,13 +489,13 @@ public class Localization implements NodeMain{
 	    ArrayList<MapParticle> newParticleList = new ArrayList<MapParticle>();
 
             int index = 0;
-            double totalProb = 0;
+            BigDecimal totalProb = new BigDecimal(0);
             for(MapParticle p : mapParticleList) {
-                double weight = p.getWeight();
-                if (Math.exp(-1*weight) >= RESAMPLING_KEEP_PROB_THRESH) {
+                BigDecimal weight = p.getWeight();
+                if (weight.compareTo(new BigDecimal(RESAMPLING_KEEP_PROB_THRESH)) >= 0) {
                     newParticleList.add(new MapParticle(p, weight, index));
                     index++;
-                    totalProb += Math.exp(-1*weight);
+                    totalProb = totalProb.add(weight);
                 }
             }
             int kept = index+1;
@@ -516,23 +503,25 @@ public class Localization implements NodeMain{
 	    // some fraction of the particles are resampled, others are draw new
 	    for(int i = 0; i < (MAX_PARTICLES-kept); i++) {
                 double val = rand.nextDouble();
-                double temp=0;
+                BigDecimal cumProbIndex = new BigDecimal(0);
                 int j;
                 // Cycle through particles until we pass the randomly selected
                 // val -- more probability of landing on higher weight particles.
                 for(j=0; j<mapParticleList.size(); j++){
-                    temp += Math.exp(-1*mapParticleList.get(j).getWeight());
-                    if(temp > val)
+                    cumProbIndex = cumProbIndex.add(mapParticleList.get(j).getWeight());
+                    if(cumProbIndex.compareTo(new BigDecimal(val)) > 0)
                         break;
                 }
                 if (j >= mapParticleList.size()) {
                     j = mapParticleList.size()-1;
                 }
                 // Duplicate the chosen particle at index with noise.
-                double newWeight = -1 * Math.log((1-totalProb) / MAX_PARTICLES);
+                // (1 - totalProb) / MAX_PARTICLES
+                BigDecimal newWeight = BigDecimal.ONE.subtract(totalProb)
+                    .divide(new BigDecimal(MAX_PARTICLES), MAX_SCALE, BigDecimal.ROUND_HALF_DOWN);
                 newParticleList.add(
 				    // the below statement used to have RESAMPLING_NOISE
-                    new MapParticle(mapParticleList.get(j), newWeight, index, 0));
+                    new MapParticle(mapParticleList.get(j), newWeight, index, 0.1, 0.3));
                 index++;
                 if (index >= MAX_PARTICLES * RESAMPLING_FRACTION) break;
 	    }
@@ -541,7 +530,8 @@ public class Localization implements NodeMain{
 
 	    // the rest of the particles are made new
 	    for(int i = index; i<MAX_PARTICLES; i++){
-                double newWeight = -1 * Math.log((1-totalProb) / MAX_PARTICLES);
+                BigDecimal newWeight = BigDecimal.ONE.subtract(totalProb)
+                    .divide(new BigDecimal(MAX_PARTICLES), MAX_SCALE, BigDecimal.ROUND_HALF_DOWN);
 		newParticleList.add(new MapParticle(mapFile, newWeight, i));
 	    }
 
