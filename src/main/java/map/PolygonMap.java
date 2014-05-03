@@ -144,7 +144,7 @@ public class PolygonMap implements java.io.Serializable{
 	fiducials.put(new Point2D.Double(3.0, 4.0), new Point2D.Double(.96, -.4953));
 	fiducials.put(new Point2D.Double(4.0, 1.0), new Point2D.Double(2.27, 2.33));
 	fiducials.put(new Point2D.Double(0.0, 3.0), new Point2D.Double(-.6096, 3.17));
-        fiducials.put(new Point2D.Double(1.0, 3.0), new Point2D.Double(1.8304, 0.0647));
+        fiducials.put(new Point2D.Double(1.0, 3.0), new Point2D.Double(.56-.6096, 2.44-.4953));
         fiducials.put(new Point2D.Double(1.0, 2.0), new Point2D.Double(1.2404, 3.3047));
         fiducials.put(new Point2D.Double(2.0, 3.0), new Point2D.Double(1.3404, 0.5547));
     }
