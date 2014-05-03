@@ -432,7 +432,7 @@ public class Localization implements NodeMain{
      * curr_theta, and curr_time to be set.
      */
     private void updateResamplingCount() {
-        /*final double THETA_COEFF = 5.0;
+        final double THETA_COEFF = 5.0;
         final double DIST_COEFF = 1.0;
         final double TIME_COEFF = 0.001;
         double deltaX = curr_x - start_x;
@@ -444,7 +444,7 @@ public class Localization implements NodeMain{
             DIST_COEFF * Math.sqrt(Math.pow(curr_x-start_x, 2)
                                    + Math.pow(curr_y-start_y, 2)) +
             THETA_COEFF * Math.abs(deltaTheta) +
-            TIME_COEFF * deltaTime;*/
+            TIME_COEFF * deltaTime;
 
 	double maxWeight = 0;
         for(MapParticle p : mapParticleList) {
