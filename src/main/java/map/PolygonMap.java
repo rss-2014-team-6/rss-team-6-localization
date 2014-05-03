@@ -117,7 +117,7 @@ public class PolygonMap implements java.io.Serializable{
 	    parse(mapFile);
 	fiducials.put(new Point2D.Double(3.0, 4.0), new Point2D.Double(.96, -.4953));
 	fiducials.put(new Point2D.Double(1.0, 3.0), new Point2D.Double(2.27, 2.33));
-	fiducials.put(new Point2D.Double(2.0, 4.0), new Point2D.Double(-.6096, 3.17));
+	fiducials.put(new Point2D.Double(3.0, 0.0), new Point2D.Double(-.6096, 3.17));
     }
 
 
@@ -129,7 +129,7 @@ public class PolygonMap implements java.io.Serializable{
 	rand = new Random();
 	fiducials.put(new Point2D.Double(3.0, 4.0), new Point2D.Double(.96, -.4953));
 	fiducials.put(new Point2D.Double(1.0, 3.0), new Point2D.Double(2.27, 2.33));
-	fiducials.put(new Point2D.Double(2.0, 4.0), new Point2D.Double(-.6096, 3.17));
+	fiducials.put(new Point2D.Double(3.0, 0.0), new Point2D.Double(-.6096, 3.17));
     }
 
     /**
@@ -141,7 +141,7 @@ public class PolygonMap implements java.io.Serializable{
 	rand = new Random();
 	fiducials.put(new Point2D.Double(3.0, 4.0), new Point2D.Double(.96, -.4953));
 	fiducials.put(new Point2D.Double(1.0, 3.0), new Point2D.Double(2.27, 2.33));
-	fiducials.put(new Point2D.Double(2.0, 4.0), new Point2D.Double(-.6096, 3.17));
+	fiducials.put(new Point2D.Double(3.0, 0.0), new Point2D.Double(-.6096, 3.17));
     }
 
     public PolygonMap(PolygonMap m){

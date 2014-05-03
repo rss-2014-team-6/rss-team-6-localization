@@ -73,7 +73,7 @@ public class MapParticle implements Cloneable{
 	// all particles start off with the same weight
 	this.weight = weight;
 	this.id = id;
-	System.out.println("MAP PARTICLE " + id + ": x: " + this.x + ", y: " + this.y);
+	//System.out.println("MAP PARTICLE " + id + ": x: " + this.x + ", y: " + this.y);
    }
 
     /**
@@ -152,8 +152,8 @@ public class MapParticle implements Cloneable{
 	}
 	weight = weight/1.0 + logprob;
 	
-	if(((Double)weight) == Double.POSITIVE_INFINITY)
-	    System.out.println("\tINFINITY! in Sonar: Particle " + id + ", weight: " + weight + ", delta: " + logprob);
+	//	if(((Double)weight) == Double.POSITIVE_INFINITY)
+	//  System.out.println("\tINFINITY! in Sonar: Particle " + id + ", weight: " + weight + ", delta: " + logprob);
     }
 
     // performs a sensor update for this particle for fiducialss
@@ -163,17 +163,24 @@ public class MapParticle implements Cloneable{
     public synchronized void fiducialSensorUpdate(double range, double bearing, int top, int bottom){
 	double[] predicted = map.predictFiducials(x, y, theta, top, bottom);
 	double logprob = 0;
-	if(predicted[0] != -1 && range < MAX_FIDUCIAL_RANGE && Math.abs(bearing) < MAX_FIDUCIAL_BEARING){
+	//if(((Double)weight) == Double.POSITIVE_INFINITY)
+	//    System.out.println("\tINFINITY! in fiducial: Particle " + id + ", starting weight: " + weight + ", delta: " + logprob);
+
+	if(predicted[0] != -1 && predicted[0] != -2 && range < MAX_FIDUCIAL_RANGE && Math.abs(bearing) < MAX_FIDUCIAL_BEARING){
 	    logprob += likelihood(range, predicted[0], FIDUCIAL_RANGE_VARIANCE);
+	    if(((Double)logprob) == Double.POSITIVE_INFINITY)
+		System.out.println("Infinity! range: " + range + " predicted: " + predicted[0]);
 	    logprob += likelihood(bearing, predicted[1], FIDUCIAL_BEARING_VARIANCE);
+	    if(((Double)logprob) == Double.POSITIVE_INFINITY)
+		System.out.println("Infinity! range: " + range + " predicted: " + predicted[1]);
 	}
 	else if(predicted[0] != -2) // -2 corresponds to invalid fiducial not in map sent
 	    logprob += -1 * Math.log(PROBABILITY_OF_FALSE_FIDUCIAL);
     	weight = weight/1.0 + logprob;
 	//System.out.println("\t Particle " + id + ", weight: " + weight + ", delta: " + logprob);
 	
-	if(((Double)weight) == Double.POSITIVE_INFINITY)
-	    System.out.println("\tINFINITY! in fiducial: Particle " + id + ", weight: " + weight + ", delta: " + logprob);
+	//if(((Double)weight) == Double.POSITIVE_INFINITY)
+	//    System.out.println("\tINFINITY! in fiducial: Particle " + id + ", weight: " + weight + ", delta: " + logprob);
 
     }
 
@@ -217,8 +224,8 @@ public class MapParticle implements Cloneable{
     // set the weight -- used for normalization
     public synchronized void setWeight(double w){
 	weight = w;
-	if(((Double)weight) == Double.POSITIVE_INFINITY)
-	    System.out.println("\tINFINITY! in set weight: Particle " + id + ", weight: " + weight);
+	//if(((Double)weight) == Double.POSITIVE_INFINITY)
+	//    System.out.println("\tINFINITY! in set weight: Particle " + id + ", weight: " + weight);
     }
 
     // get the current map estimate for this particle
