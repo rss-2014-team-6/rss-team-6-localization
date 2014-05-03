@@ -187,6 +187,8 @@ public class MapParticle implements Cloneable{
     public synchronized void fiducialSensorUpdate(double range, double bearing, int top, int bottom){
 	double[] predicted = map.predictFiducials(x, y, theta, top, bottom);
 	double logprob = 0;
+	
+
 	//if(((Double)weight) == Double.POSITIVE_INFINITY)
 	//    System.out.println("\tINFINITY! in fiducial: Particle " + id + ", starting weight: " + weight + ", delta: " + logprob);
 
@@ -200,7 +202,9 @@ public class MapParticle implements Cloneable{
 	}
 	else if(predicted[0] != -2) // -2 corresponds to invalid fiducial not in map sent
 	    logprob += -1 * Math.log(PROBABILITY_OF_FALSE_FIDUCIAL);
-    	fidWeight += logprob;
+    	
+	//System.out.println("UPDATING FIDUCIALSSSSSS! " + fidWeight + " new: " + (fidWeight+logprob));
+	fidWeight += logprob;
 	//System.out.println("\t Particle " + id + ", weight: " + weight + ", delta: " + logprob);
 	
 	//if(((Double)weight) == Double.POSITIVE_INFINITY)

@@ -104,6 +104,8 @@ public class PolygonMap implements java.io.Serializable{
     private final double SONAR_MAX_DIST = 1.2; //pulled out of a hat!!
     private final double SONAR_MIN_DIST = .25; //pulled out of a hat!!
 
+    private Point2D.Double fiducialCameraMount = new Point2D.Double(.05, 0);
+
     private Random rand;
     
     /**
@@ -149,6 +151,7 @@ public class PolygonMap implements java.io.Serializable{
 	this.robotGoal = m.robotGoal;
 	this.worldRect = m.worldRect;
 	this.obstacles = m.obstacles;
+	this.fiducials = m.fiducials;
     }
 
     public boolean isValid(double x, double y){
@@ -227,6 +230,8 @@ public class PolygonMap implements java.io.Serializable{
 	}
 	Point2D.Double loc = fiducials.get(id);
 	Point2D.Double rel = globalToLocal(x, y, theta, loc);
+	rel.setLocation(rel.getX() - fiducialCameraMount.getX(), rel.getY() - fiducialCameraMount.getY());
+
 	double[] rtrn = new double[2];
 	rtrn[1] = -1 * Math.atan2(rel.getY(), rel.getX()); // Bearing uses clockwise as pos theta
 	rtrn[0] = Math.sqrt(Math.pow(rel.getX(), 2) + Math.pow(rel.getY(), 2));
