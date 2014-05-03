@@ -61,14 +61,14 @@ public class Localization implements NodeMain{
 
     protected ArrayList<MapParticle> mapParticleList = new ArrayList<MapParticle>();
 
-    protected static final int MAX_PARTICLES = 1000;
+    protected static final int MAX_PARTICLES = 4000;
     protected static final double CONFIDENCE_THRESH = 0.30;
 
     protected boolean RESAMPLING = true;
     // Heuristic to track roughly how much variance in particle 
     // position has been introduced by motion.
     protected double resamplingCount = 0.0;
-    protected double RESAMPLING_FREQUENCY = 5; 
+    protected double RESAMPLING_FREQUENCY = 300; 
     /**
      * How many of the resampled particles are chosen based on
      * existing weights (the rest are resampled new).
@@ -324,7 +324,7 @@ public class Localization implements NodeMain{
 	}
 
         resample();
-
+        
         publishMap();
         drawParticleCloud();
     }
@@ -432,7 +432,7 @@ public class Localization implements NodeMain{
      * curr_theta, and curr_time to be set.
      */
     private void updateResamplingCount() {
-        final double THETA_COEFF = 5.0;
+        final double THETA_COEFF = 0.5;
         final double DIST_COEFF = 1.0;
         final double TIME_COEFF = 0.001;
         double deltaX = curr_x - start_x;
@@ -479,6 +479,10 @@ public class Localization implements NodeMain{
             double w = p.getWeight();
             p.setWeight(w - minWeight);
 	    sum += Math.exp(-1*p.getWeight());
+        }
+
+        if (sum == 0) {
+            throw new RuntimeException("Zero sum in renormalizing");
         }
 
 	for(int i=0; i<mapParticleList.size(); i++){

@@ -14,7 +14,11 @@ public class MapParticle implements Cloneable{
     // TODO: bumpSensorUpdate, fiducialSensorUpdate
     
     // we store weights as the negative log in order to get extra precision for low weight particles
-    private double weight;
+    private double fidWeight;
+    private double sonarWeight;
+    private double baseWeight;
+    private double bumpWeight;
+    private double penaltyWeight;
     private PolygonMap map;
     private double x;
     private double y;
@@ -34,7 +38,7 @@ public class MapParticle implements Cloneable{
     private static final double PROBABILITY_OF_BUMP_IF_NOT_IN_POSITION = .02;
     private static final double PROBABILITY_OF_FALSE_SONAR = .01; //pulled out of a hat!
 
-    private static final double PROBABILITY_OF_FALSE_FIDUCIAL = .0001; // pulled out of a bigger hat!
+    private static final double PROBABILITY_OF_FALSE_FIDUCIAL = .000001; // pulled out of a bigger hat!
     private static final double FIDUCIAL_BEARING_VARIANCE = .05;
     private static final double FIDUCIAL_RANGE_VARIANCE = .5;
     private static final double MAX_FIDUCIAL_RANGE = 1.5;
@@ -44,6 +48,10 @@ public class MapParticle implements Cloneable{
     private static final double SONAR_MIN_DIST = .20;
 
     private static final double OUT_OF_BOUND_PENALTY = .001; 
+
+    private static final double FID_COEFF = 0.5;
+    private static final double SONAR_COEFF = 0.3;
+    private static final double BUMP_COEFF = 0.2;
 
     // threshold for adding new obstacle-points to the map
     private static final double BUILD_THRESHOLD = .5;
@@ -71,7 +79,11 @@ public class MapParticle implements Cloneable{
 	this.y = ty;
 	this.theta = rand.nextDouble() * Math.PI * 2;
 	// all particles start off with the same weight
-	this.weight = weight;
+	this.baseWeight = weight;
+        this.fidWeight = 0;
+        this.bumpWeight = 0;
+        this.sonarWeight = 0;
+        this.penaltyWeight = 0;
 	this.id = id;
 	//System.out.println("MAP PARTICLE " + id + ": x: " + this.x + ", y: " + this.y);
    }
@@ -88,7 +100,12 @@ public class MapParticle implements Cloneable{
      * and id. Adds error randomly selected from [-posNoise/2,posNoise/2) to each coord.
      */
     public MapParticle(MapParticle mp, double weight, int id, double posNoise){
-	this.weight = weight;
+	this.baseWeight = mp.baseWeight;
+        this.fidWeight = mp.fidWeight;
+        this.sonarWeight = mp.sonarWeight;
+        this.bumpWeight = mp.bumpWeight;
+        this.penaltyWeight = 0;
+        this.setWeight(weight);
 	this.x = mp.getX() + Math.random()*posNoise - posNoise/2.0;
 	this.y = mp.getY() + Math.random()*posNoise - posNoise/2.0;
 	this.theta = mp.getTheta();
@@ -108,10 +125,10 @@ public class MapParticle implements Cloneable{
 	// Localization passes in a location where there's a bump
 	
 	if(map.withinBumpThreshold(x, y, theta, bumpID)){
-	    weight += -1 * Math.log(PROBABILITY_OF_BUMP_IF_IN_POSITION);
+	    bumpWeight += -1 * Math.log(PROBABILITY_OF_BUMP_IF_IN_POSITION);
 	}
 	else{
-	    weight += -1 * Math.log(PROBABILITY_OF_BUMP_IF_NOT_IN_POSITION);
+	    bumpWeight += -1 * Math.log(PROBABILITY_OF_BUMP_IF_NOT_IN_POSITION);
 	}
 	
     }
@@ -150,7 +167,7 @@ public class MapParticle implements Cloneable{
             }
             */
 	}
-	weight = weight/1.0 + logprob;
+	sonarWeight += logprob;
 	
 	//	if(((Double)weight) == Double.POSITIVE_INFINITY)
 	//  System.out.println("\tINFINITY! in Sonar: Particle " + id + ", weight: " + weight + ", delta: " + logprob);
@@ -176,7 +193,7 @@ public class MapParticle implements Cloneable{
 	}
 	else if(predicted[0] != -2) // -2 corresponds to invalid fiducial not in map sent
 	    logprob += -1 * Math.log(PROBABILITY_OF_FALSE_FIDUCIAL);
-    	weight = weight/1.0 + logprob;
+    	fidWeight += logprob;
 	//System.out.println("\t Particle " + id + ", weight: " + weight + ", delta: " + logprob);
 	
 	//if(((Double)weight) == Double.POSITIVE_INFINITY)
@@ -213,17 +230,51 @@ public class MapParticle implements Cloneable{
 	}
 
 	if(!map.isValid(x,y))
-	    weight += -1 * Math.log(OUT_OF_BOUND_PENALTY);
+	    penaltyWeight += -1 * Math.log(OUT_OF_BOUND_PENALTY);
     }
 
     // returns the weight
     public double getWeight(){
-	return weight;
+	return baseWeight
+            + Math.pow(fidWeight, FID_COEFF)
+            + Math.pow(sonarWeight, SONAR_COEFF)
+            + Math.pow(bumpWeight, BUMP_COEFF)
+            + penaltyWeight;
     }
 
     // set the weight -- used for normalization
     public synchronized void setWeight(double w){
-	weight = w;
+        // Divide up remainder of w - baseWeight among
+        // fid, sonar, and bump in the correct fractions
+        /*
+        if (w < baseWeight) {
+            // TODO: This is kind of hacky. Also not sure we'll ever hit this case.
+            baseWeight = w;
+            fidWeight = 0;
+            sonarWeight = 0;
+            bumpWeight = 0;
+            penaltyWeight = 0;
+        }
+        else {
+            double rest = w - baseWeight;
+            double curTotal = Math.pow(fidWeight, FID_COEFF)
+                + Math.pow(sonarWeight, SONAR_COEFF)
+                + Math.pow(bumpWeight, BUMP_COEFF);
+            // Compute what value to add to each individual weight such that they total
+            // to rest.
+            double toAdd = (rest - curTotal) / (FID_COEFF + SONAR_COEFF + BUMP_COEFF);
+            fidWeight += toAdd;
+            sonarWeight += toAdd;
+            bumpWeight += toAdd;
+            penaltyWeight = 0;
+        }
+        */
+        // TODO: This is hacky. Proper way would be to solve the transcendental
+        // equation introduced by attempting to add an equal number to each of
+        // fid, sonar, and bump to zero out penalty weight. But... this is much
+        // shorter.
+        penaltyWeight += w - getWeight();
+        
 	//if(((Double)weight) == Double.POSITIVE_INFINITY)
 	//    System.out.println("\tINFINITY! in set weight: Particle " + id + ", weight: " + weight);
     }
