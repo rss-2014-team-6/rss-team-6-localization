@@ -240,11 +240,11 @@ public class Localization implements NodeMain{
         if (confidence < CONFIDENCE_THRESH && prevBestParticle != null) {
             // Go with our previous most confident particle, if there is one
             bestParticle = prevBestParticle;
-            //System.out.println("Selecting prev best particle");
+            System.out.println("Selecting prev best particle");
         }
         else if (confidence > CONFIDENCE_THRESH) {
             prevBestParticle = new MapParticle(bestParticle, minWeight, bestParticle.getID());
-            //System.out.println("Particle is good conf");
+            System.out.println("Particle is good conf");
         }
         // TEST
 
@@ -590,9 +590,10 @@ public class Localization implements NodeMain{
 	    // the rest of the particles are made new
 	    for(int i = index; i<MAX_PARTICLES; i++){
                 double newOverallWeight = -1 * Math.log((1-totalProb) / MAX_PARTICLES);
-                double newComponentWeight = -1 * Math.log(1.0 / MAX_PARTICLES);
+                double newBaseWeight = -1 * Math.log(1.0 / MAX_PARTICLES);
+                double newComponentWeight = 300;
                 MapParticle newPart = new MapParticle(
-                    mapFile, newComponentWeight,
+                    mapFile, newBaseWeight,
                     newComponentWeight, newComponentWeight,
                     newComponentWeight, newComponentWeight, i);
                 newPart.setWeight(newOverallWeight);

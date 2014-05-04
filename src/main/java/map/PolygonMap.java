@@ -155,6 +155,7 @@ public class PolygonMap implements java.io.Serializable{
 	this.worldRect = m.worldRect;
 	this.obstacles = m.obstacles;
 	this.fiducials = m.fiducials;
+        recalculateCSpace();
     }
 
     public boolean isValid(double x, double y){
