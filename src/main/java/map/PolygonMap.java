@@ -143,12 +143,19 @@ public class PolygonMap implements java.io.Serializable{
     }
 
     private void addFiducials() {
-	fiducials.put(new Point2D.Double(3.0, 4.0), new Point2D.Double(.96, -.4953));
-	fiducials.put(new Point2D.Double(4.0, 1.0), new Point2D.Double(2.27, 2.33));
-	fiducials.put(new Point2D.Double(0.0, 3.0), new Point2D.Double(-.6096, 3.17));
-        fiducials.put(new Point2D.Double(1.0, 3.0), new Point2D.Double(.56-.6096, 2.44-.4953));
-        fiducials.put(new Point2D.Double(1.0, 2.0), new Point2D.Double(1.2404, 3.3047));
-        fiducials.put(new Point2D.Double(2.0, 3.0), new Point2D.Double(1.3404, 0.5547));
+	// colors:
+	// red = 0
+	// orange = 1
+	// yellow = 2
+	// green = 3
+	// blue = 4
+	fiducials.put(new Point2D.Double(3.0, 4.0), new Point2D.Double(-0.6125, 4.1375));
+	fiducials.put(new Point2D.Double(4.0, 2.0), new Point2D.Double(0.5, 4.125));
+	fiducials.put(new Point2D.Double(3.0, 1.0), new Point2D.Double(3.0125, 3.325));
+        fiducials.put(new Point2D.Double(0.0, 3.0), new Point2D.Double(1.9875, -0.475));
+        fiducials.put(new Point2D.Double(2.0, 0.0), new Point2D.Double(-0.5125, 0.65));
+        fiducials.put(new Point2D.Double(4.0, 0.0), new Point2D.Double(1.45, 1.425));
+        fiducials.put(new Point2D.Double(1.0, 4.0), new Point2D.Double(0.8625, 1.225));
     }
 
     public PolygonMap(PolygonMap m){
@@ -491,8 +498,10 @@ public class PolygonMap implements java.io.Serializable{
 
 	rect.x = Double.parseDouble(tok[0]);
 	rect.y = Double.parseDouble(tok[1]);
-	rect.width = Double.parseDouble(tok[2]);
-	rect.height = Double.parseDouble(tok[3]);
+	//rect.width = Double.parseDouble(tok[2]);
+	//rect.height = Double.parseDouble(tok[3]);
+	rect.width = Double.parseDouble(tok[2])-rect.x;
+	rect.height = Double.parseDouble(tok[3])-rect.y;
     }
 
     /**
