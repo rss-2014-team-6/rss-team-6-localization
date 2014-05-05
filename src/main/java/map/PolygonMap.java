@@ -167,11 +167,24 @@ public class PolygonMap implements java.io.Serializable{
         recalculateCSpace();
     }
 
-    public boolean isValid(double x, double y){
+    public boolean isValidHard(double x, double y){
 	Point2D.Double pt = new Point2D.Double(x,y);
         // Check point against cspace obstacles
 	for(PolygonObstacle o : cspace.getObstacles()){
-	    if(isPointInObstacle(pt, o))
+	    if(o.contains(pt))
+		return false;
+	}
+	if(x < worldRect.getX() + ROBOT_REAL_RADIUS || x > worldRect.getWidth() + worldRect.getX() - ROBOT_REAL_RADIUS)
+	    return false;
+	if(y < worldRect.getY() + ROBOT_REAL_RADIUS || y > worldRect.getHeight() + worldRect.getY() - ROBOT_REAL_RADIUS)
+	    return false;
+	return true;
+    }
+    public boolean isValidSoft(double x, double y){
+	Point2D.Double pt = new Point2D.Double(x,y);
+        // Check point against cspace obstacles
+	for(PolygonObstacle o : softCspace.getObstacles()){
+	    if(o.contains(pt))
 		return false;
 	}
 	if(x < worldRect.getX() + ROBOT_SOFT_RADIUS || x > worldRect.getWidth() + worldRect.getX() - ROBOT_SOFT_RADIUS)

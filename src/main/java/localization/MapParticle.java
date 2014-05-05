@@ -73,7 +73,7 @@ public class MapParticle implements Cloneable{
 	this.rand = new Random();
 	double tx = rand.nextDouble() * map.worldRect.getWidth() + map.worldRect.getX();
 	double ty = rand.nextDouble() * map.worldRect.getHeight() + map.worldRect.getY();
-	while(!map.isValid(tx, ty)){
+	while(!map.isValidSoft(tx, ty)){
 	    tx = rand.nextDouble() * map.worldRect.getWidth() + map.worldRect.getX();
 	    ty = rand.nextDouble() * map.worldRect.getHeight() + map.worldRect.getY();
 	}
@@ -240,7 +240,7 @@ public class MapParticle implements Cloneable{
             }
 	}
 
-	if(!map.isValid(x,y))
+	if(!map.isValidSoft(x,y))
 	    penaltyWeight += -1 * Math.log(OUT_OF_BOUND_PENALTY);
     }
 
