@@ -239,6 +239,33 @@ public class PolygonMap implements java.io.Serializable{
 	double[] rtrn = new double[2];
 	rtrn[1] = -1 * Math.atan2(rel.getY(), rel.getX()); // Bearing uses clockwise as pos theta
 	rtrn[0] = Math.sqrt(Math.pow(rel.getX(), 2) + Math.pow(rel.getY(), 2));
+
+	
+	Point2D.Double robot_loc = new Point2D.Double(x, y);
+	Line2D.Double fiducial_line = new Line2D.Double(robot_loc, loc);
+	// check if there's anything obstructing our view of the fiducial
+	// iterate through obstacles
+	for(PolygonObstacle o : obstacles){
+	    // iterate through lines on obstacles
+	    List<Point2D.Double> vertices = o.getVertices();
+	    for(int j=0; j<vertices.size(); j++){
+		Point2D.Double obs_start = vertices.get(j);
+		Point2D.Double obs_end = vertices.get( (j+1) % vertices.size() );
+		Line2D.Double obs_line = new Line2D.Double(obs_start, obs_end);
+		// check for intersection
+		//System.out.println("intersection: " + intersection);
+		// if intersection, set the point to the intersection point
+		if(obs_line.intersectsLine(fiducial_line)) {
+		    Point2D.Double intersection = getIntersection(robot_loc, loc, obs_start, obs_end);
+		    if(dist(intersection, robot_loc) < rtrn[0]){
+			double[] r = {-1, -1};
+			return r;
+		    }	
+		}
+	    }
+	}
+	
+
 	if(rtrn[0] > MAX_FIDUCIAL_RANGE || Math.abs(rtrn[1]) > MAX_FIDUCIAL_BEARING){
 	    double[] r = {-1, -1};
 	    return r;
