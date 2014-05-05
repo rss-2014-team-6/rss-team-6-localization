@@ -67,7 +67,7 @@ public class PolygonMap implements java.io.Serializable{
     public Rectangle2D.Double worldRect = new Rectangle2D.Double();
 
     private double ROBOT_REAL_RADIUS = 0.26;
-    private double ROBOT_SOFT_RADIUS = 0.2;
+    private double ROBOT_SOFT_RADIUS = 0.23;
 
     private double MAX_FIDUCIAL_RANGE = 1.5;
     private double MAX_FIDUCIAL_BEARING = .35;
@@ -105,6 +105,8 @@ public class PolygonMap implements java.io.Serializable{
     private final double SONAR_MIN_DIST = .25; //pulled out of a hat!!
 
     private Point2D.Double fiducialCameraMount = new Point2D.Double(.05, 0);
+
+    private final double FIDUCIAL_THRESHOLD = .1; // to take into account the new fiducial locations
 
     private Random rand;
     
@@ -257,7 +259,7 @@ public class PolygonMap implements java.io.Serializable{
 		// if intersection, set the point to the intersection point
 		if(obs_line.intersectsLine(fiducial_line)) {
 		    Point2D.Double intersection = getIntersection(robot_loc, loc, obs_start, obs_end);
-		    if(dist(intersection, robot_loc) < rtrn[0]){
+		    if(dist(intersection, robot_loc) + FIDUCIAL_THRESHOLD < rtrn[0]){
 			double[] r = {-1, -1};
 			return r;
 		    }	
