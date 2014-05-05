@@ -149,9 +149,9 @@ public class PolygonMap implements java.io.Serializable{
 	// yellow = 2
 	// green = 3
 	// blue = 4
-	fiducials.put(new Point2D.Double(3.0, 4.0), new Point2D.Double(-0.6125, 4.1375));
-	fiducials.put(new Point2D.Double(4.0, 2.0), new Point2D.Double(0.5, 4.125));
-	fiducials.put(new Point2D.Double(3.0, 1.0), new Point2D.Double(3.0125, 3.325));
+	fiducials.put(new Point2D.Double(3.0, 4.0), new Point2D.Double(-0.6125, 4.6328));
+	fiducials.put(new Point2D.Double(4.0, 2.0), new Point2D.Double(0.5, 4.6328));
+	fiducials.put(new Point2D.Double(3.0, 1.0), new Point2D.Double(3.0125, 3.8203));
         fiducials.put(new Point2D.Double(0.0, 3.0), new Point2D.Double(1.9875, -0.475));
         fiducials.put(new Point2D.Double(2.0, 0.0), new Point2D.Double(-0.5125, 0.65));
         fiducials.put(new Point2D.Double(4.0, 0.0), new Point2D.Double(1.45, 1.425));
