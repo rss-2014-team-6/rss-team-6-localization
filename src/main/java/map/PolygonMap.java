@@ -489,8 +489,10 @@ public class PolygonMap implements java.io.Serializable{
 
 	rect.x = Double.parseDouble(tok[0]);
 	rect.y = Double.parseDouble(tok[1]);
-	rect.width = Double.parseDouble(tok[2]);
-	rect.height = Double.parseDouble(tok[3]);
+	//rect.width = Double.parseDouble(tok[2]);
+	//rect.height = Double.parseDouble(tok[3]);
+	rect.width = Double.parseDouble(tok[2]-rect.x);
+	rect.height = Double.parseDouble(tok[3]-rect.y);
     }
 
     /**
