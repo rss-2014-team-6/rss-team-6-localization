@@ -73,7 +73,7 @@ public class Localization implements NodeMain{
      * How many of the resampled particles are chosen based on
      * existing weights (the rest are resampled new).
      */
-    protected double RESAMPLING_FRACTION = 1.0;
+    protected double RESAMPLING_FRACTION = .8;
     /**
      * Particles above this probability and kept with their original
      * weight. Rest are resampled.
@@ -551,6 +551,7 @@ public class Localization implements NodeMain{
 
             int index = 0;
             double totalProb = 0;
+	    double maxWeight = 0;
             for(MapParticle p : mapParticleList) {
                 double weight = p.getWeight();
                 if (Math.exp(-1*weight) >= RESAMPLING_KEEP_PROB_THRESH) {
@@ -558,6 +559,9 @@ public class Localization implements NodeMain{
                     index++;
                     totalProb += Math.exp(-1*weight);
                 }
+		// calculate max weight -- used for min resampling weight
+		if(weight > maxWeight)
+		    maxWeight = weight;
             }
             int kept = index;
             System.out.println(kept + " total particles kept. Total prob: " + totalProb);
@@ -589,9 +593,9 @@ public class Localization implements NodeMain{
 
 	    // the rest of the particles are made new
 	    for(int i = index; i<MAX_PARTICLES; i++){
-                double newOverallWeight = -1 * Math.log((1-totalProb) / MAX_PARTICLES);
-                double newBaseWeight = -1 * Math.log(1.0 / MAX_PARTICLES);
-                double newComponentWeight = 300;
+                double newOverallWeight = Math.max(-1 * Math.log(1-totalProb) + maxWeight, -1 * Math.log((1-totalProb) / MAX_PARTICLES));
+                double newBaseWeight = Math.max(maxWeight, -1 * Math.log((1-totalProb) / MAX_PARTICLES));
+                double newComponentWeight = Math.max(maxWeight/3, -1 * Math.log((1-totalProb) / MAX_PARTICLES)/3);
                 MapParticle newPart = new MapParticle(
                     mapFile, newBaseWeight,
                     newComponentWeight, newComponentWeight,
