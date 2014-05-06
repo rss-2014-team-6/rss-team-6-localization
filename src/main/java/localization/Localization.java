@@ -604,9 +604,9 @@ public class Localization implements NodeMain{
                 double newBaseWeight = Math.max(maxWeight, -1 * Math.log((1-totalProb) / MAX_PARTICLES));
                 double newComponentWeight = Math.max(maxWeight/3, -1 * Math.log((1-totalProb) / MAX_PARTICLES)/3);
                 MapParticle newPart = new MapParticle(
-                    mapFile, newBaseWeight,
-                    newComponentWeight, newComponentWeight,
-                    newComponentWeight, newComponentWeight, i);
+						      mapParticleList.get(0).getMap(), newBaseWeight,
+						      newComponentWeight, newComponentWeight,
+						      newComponentWeight, newComponentWeight, i);
                 newPart.setWeight(newOverallWeight);
 		newParticleList.add(newPart);
 	    }

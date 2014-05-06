@@ -106,6 +106,29 @@ public class MapParticle implements Cloneable{
      * and id. Adds error randomly selected from [-posNoise/2,posNoise/2) to each coord.
      * If clearWeights is true, resets fidWeight, sonarWeight, etc.
      */
+    public MapParticle(PolygonMap map, double baseWeight,
+                       double fidWeight, double bumpWeight, double sonarWeight,
+                       double penaltyWeight, int id){
+	rand = new Random();
+	this.baseWeight = baseWeight;
+        this.fidWeight = fidWeight;
+        this.sonarWeight = sonarWeight;
+        this.bumpWeight = bumpWeight;
+        this.penaltyWeight = penaltyWeight;
+	this.rand = new Random();
+	double tx = rand.nextDouble() * map.worldRect.getWidth() + map.worldRect.getX();
+	double ty = rand.nextDouble() * map.worldRect.getHeight() + map.worldRect.getY();
+	while(!map.isValidSoft(tx, ty)){
+	    tx = rand.nextDouble() * map.worldRect.getWidth() + map.worldRect.getX();
+	    ty = rand.nextDouble() * map.worldRect.getHeight() + map.worldRect.getY();
+	}
+	this.x = tx;
+	this.y = ty;
+	this.theta = rand.nextDouble() * Math.PI * 2;
+	this.id = id;
+	this.map = new PolygonMap(map);
+    }
+
     public MapParticle(MapParticle mp, double weight, int id, double posNoise){
 	rand = new Random();
 	this.baseWeight = mp.baseWeight;
@@ -120,6 +143,7 @@ public class MapParticle implements Cloneable{
 	this.id = id;
 	this.map = new PolygonMap(mp.getMap());
     }
+
 
     // performs a sensor update for this particle for bump sensors
     // bumpLoc is offset from local coordinates of robot
