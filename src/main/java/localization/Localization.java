@@ -74,6 +74,8 @@ public class Localization implements NodeMain{
      * existing weights (the rest are resampled new).
      */
     protected double RESAMPLING_FRACTION = .8;
+    protected double BUMP_RESAMPLING_FRACTION = .5;
+    protected double BUMP_RESAMPLING_CUTOFF = 1337;
     /**
      * Particles above this probability and kept with their original
      * weight. Rest are resampled.
@@ -124,11 +126,14 @@ public class Localization implements NodeMain{
         bumpSub.addMessageListener(new MessageListener<BumpMsg>() {
             @Override
             public void onNewMessage(BumpMsg msg) {
-                if(state_initialized)
+                if(state_initialized){
 		    bumpSensorUpdate(msg);
+		    System.out.println("got bump -- resampling");
+		    resamplingCount = BUMP_RESAMPLING_CUTOFF; // don't show Tej this code
+		}
             }
-        });
-
+	    });
+	
 
 	sonSub = node.newSubscriber("/sense/Sonar", "rss_msgs/SonarMsg");
 	sonSub.addMessageListener(new MessageListener<SonarMsg>() {
@@ -587,6 +592,7 @@ public class Localization implements NodeMain{
                     new MapParticle(mapParticleList.get(j), newWeight, index, RESAMPLING_NOISE));
                 index++;
                 if (index >= MAX_PARTICLES * RESAMPLING_FRACTION) break;
+		if (index >= MAX_PARTICLES * BUMP_RESAMPLING_FRACTION  && resamplingCount == BUMP_RESAMPLING_CUTOFF) break;
 	    }
 
 	    final String mapFile = globalMapFile;
